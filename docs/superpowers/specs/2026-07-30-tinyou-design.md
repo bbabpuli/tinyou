@@ -1,8 +1,9 @@
-# 주머니 속 연인 (Pocket Partner) — 설계 스펙
+# 티뉴 (Tinyou) — 설계 스펙
 
 - 날짜: 2026-07-30
 - 상태: 승인됨 (사용자 승인 완료)
 - 형태: PWA (반응 좋으면 Capacitor로 앱 포장)
+- 이름: **Tinyou** (tiny + you, "작은 너") — 레포/슬러그 `tinyou`
 
 ## 한 줄 컨셉
 
@@ -116,8 +117,29 @@
 **v1 제외**: 배틀(v2, 별도 브레인스토밍), 푸시 알림(앱 포장 단계), 캐릭터 이미지
 진화(AI 재생성형 성장), 다인 그룹, 자율 대화 AI
 
+## 배포 / 인프라 (pay-pos 패턴 재사용)
+
+개인 토이 프로젝트 pay-pos(`~/Documents/toy-project/pay-pos`)의 운영 구성을 그대로 따른다.
+
+- **저장소**: 개인 GitHub 계정 `bbabpuli/tinyou` (weknew 무관)
+- **호스팅**: pay-pos와 같은 Oracle Cloud VM (`ubuntu@140.245.60.65`,
+  SSH 키 `~/Downloads/ssh-key-2026-06-30.key`)에 Docker Compose 스택 추가
+- **구성**: 프론트가 정적 PWA(Vite 빌드 산출물)이므로 pay-pos보다 가벼움 —
+  `nginx`(정적 서빙) + `cloudflared`(Cloudflare Tunnel) 컨테이너 2개.
+  포트 개방·인증서 불필요 (pay-pos의 cloudflared 패턴 그대로)
+- **도메인**: Cloudflare에 등록 (예: tinyou.app 등 — 구매 시 확정). 터널
+  Public Hostname → `http://nginx:80`
+- **배포 스크립트**: pay-pos `deploy.sh` 패턴 재사용 — 로컬에서
+  `git push origin main` → SSH로 VM에서 `git pull` + `docker compose up -d --build`
+  + 헬스체크(HTTP 200 확인)
+- **백엔드**: 별도 서버 없음. Supabase(무료 티어)가 DB/Auth/Realtime/Edge
+  Function/Storage 전담. VM은 정적 파일만 서빙
+- **시크릿**: 이미지 생성 API 키는 Supabase Edge Function 환경변수로만 보관.
+  VM `.env`에는 `CLOUDFLARE_TUNNEL_TOKEN`만 필요
+
 ## 비용
 
 - 이미지 생성: 커플당 최대 8회 (2인 × 초기 1 + 재생성 3) 일회성 호출
 - 대화 LLM: 없음
 - Supabase: 무료 티어로 충분
+- VM: 기존 pay-pos VM 공유 (추가 비용 없음), 도메인 구매비만 발생
