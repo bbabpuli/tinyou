@@ -44,22 +44,39 @@ export function createCharacterFsm(rng: () => number = Math.random): CharacterFs
       mood = m
     },
     update(dtMs) {
+      // If not in action and queue has items, start the next one
       const inAction = ACTION_STATES.includes(state)
       if (!inAction && queue.length > 0) {
         const flow = ACTION_FLOW[queue.shift()!]
         state = flow.state
         remainMs = flow.ms
-        return
       }
+
       remainMs -= dtMs
-      if (remainMs > 0) return
-      if (state === 'eat' || state === 'petted') {
-        state = 'happy'
-        remainMs = HAPPY_MS
-        return
+
+      // Process all transitions that occur within this update call
+      // Durations are always > 0, so this terminates
+      while (remainMs <= 0) {
+        if (state === 'eat' || state === 'petted') {
+          // Action phase -> happy, carrying overflow
+          state = 'happy'
+          remainMs += HAPPY_MS
+        } else if (state === 'happy') {
+          // Happy expired -> check queue or ambient, carrying overflow
+          if (queue.length > 0) {
+            const flow = ACTION_FLOW[queue.shift()!]
+            state = flow.state
+            remainMs += flow.ms
+          } else {
+            state = nextAmbient()
+            remainMs += ambientDurationMs(state)
+          }
+        } else {
+          // Ambient state (idle/walk/sad) -> toggle, carrying overflow
+          state = nextAmbient()
+          remainMs += ambientDurationMs(state)
+        }
       }
-      state = nextAmbient()
-      remainMs = ambientDurationMs(state)
     },
   }
 }

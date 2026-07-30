@@ -62,3 +62,23 @@ test('sad여도 돌봄 액션은 정상 재생 (돌아오면 반겨줌)', () => 
   fsm.update(16)
   expect(fsm.state).toBe('eat')
 })
+
+test('happy 종료와 동시에 큐 액션이 같은 update에서 시작 (앰비언트 글리치 없음)', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.enqueue('feed')
+  fsm.update(16)
+  fsm.enqueue('pet')
+  fsm.update(2000) // eat 종료 → happy
+  fsm.update(1500) // happy 종료 → 큐의 pet이 즉시 시작되어야 함
+  expect(fsm.state).toBe('petted')
+})
+
+test('큰 dt는 오버플로를 다음 단계로 이월', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.enqueue('feed')
+  fsm.update(16) // eat 시작 (2000ms)
+  fsm.update(2500) // eat 소진 + happy에 500ms 이월 → happy 잔여 1000ms
+  expect(fsm.state).toBe('happy')
+  fsm.update(1000) // happy 정확히 소진
+  expect(['idle', 'walk']).toContain(fsm.state)
+})
