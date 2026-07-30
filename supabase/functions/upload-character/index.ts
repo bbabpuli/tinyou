@@ -31,12 +31,14 @@ async function tryClaimSlot(
 
 // 업로드 한도 슬롯을 원자적으로 예약한다 (Storage 업로드 전에 반드시 완료).
 // existing 행이 있으면 CAS update, 없으면 insert를 시도하고 유니크 충돌 시 update 경로로 폴백한다.
+// name은 여기서 기록하지 않는다: Storage 업로드 실패 시 "name 있음 + image_path null"인
+// 유령 행이 남으면 앱 라우팅(`!mine || !mine.name`)이 이를 완성된 캐릭터로 오인해
+// CharacterCreate 재진입이 막히기 때문 — name은 Phase 2(업로드 성공 후)에서만 기록한다.
 async function reserveUploadSlot(
   admin: SupabaseClient,
   coupleId: string,
   ownerId: string,
   subjectId: string,
-  name: string,
   existing: { id: string; regen_count: number } | null,
 ): Promise<{ characterId: string } | { error: 'GENERATION_LIMIT' | 'SAVE_FAILED' }> {
   if (existing) {
@@ -73,7 +75,6 @@ async function reserveUploadSlot(
     couple_id: coupleId,
     owner_user_id: ownerId,
     subject_user_id: subjectId,
-    name,
     regen_count: 1,
   })
   if (!insertError) return { characterId: newId }
@@ -86,7 +87,7 @@ async function reserveUploadSlot(
     .from('characters').select('id, regen_count')
     .eq('couple_id', coupleId).eq('owner_user_id', ownerId).maybeSingle()
   if (!fresh) return { error: 'SAVE_FAILED' }
-  return reserveUploadSlot(admin, coupleId, ownerId, subjectId, name, fresh)
+  return reserveUploadSlot(admin, coupleId, ownerId, subjectId, fresh)
 }
 
 Deno.serve(async (req) => {
@@ -131,7 +132,7 @@ Deno.serve(async (req) => {
     .from('characters').select('id, regen_count')
     .eq('couple_id', me.couple_id).eq('owner_user_id', user.id).maybeSingle()
 
-  const slot = await reserveUploadSlot(admin, me.couple_id, user.id, partner.user_id, name.trim(), existing)
+  const slot = await reserveUploadSlot(admin, me.couple_id, user.id, partner.user_id, existing)
   if ('error' in slot) return json(slot.error === 'GENERATION_LIMIT' ? 429 : 502, { error: slot.error })
   const { characterId } = slot
 
