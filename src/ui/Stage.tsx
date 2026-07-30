@@ -19,10 +19,6 @@ export function Stage({ character }: StageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    void useGame.getState().loadCare(character.id, character.ownerUserId)
-  }, [character.id, character.ownerUserId])
-
-  useEffect(() => {
     const ctx = canvasRef.current!.getContext('2d')!
     ctx.imageSmoothingEnabled = false
     const fsm = createCharacterFsm()

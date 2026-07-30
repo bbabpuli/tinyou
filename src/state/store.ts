@@ -42,10 +42,14 @@ export const useGame = create<GameStore>()((set, get) => ({
   pending: [],
   insertCare: supabaseInsertCare,
   async loadCare(characterId, userId) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('care_actions')
       .select('user_id, type, created_at')
       .eq('character_id', characterId)
+    if (error) {
+      console.warn('loadCare failed', error.message)
+      return
+    }
     set({
       characterId,
       userId,

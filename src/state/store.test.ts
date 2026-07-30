@@ -31,3 +31,13 @@ test('DB 유니크 위반(다른 기기에서 이미 돌봄)이면 false + 롤�
   expect(useGame.getState().careLog).toHaveLength(0)
   expect(useGame.getState().pending).toEqual([])
 })
+
+test('consumePending은 FIFO로 하나씩 소비', async () => {
+  const insert = vi.fn().mockResolvedValue({ ok: true })
+  useGame.setState({ insertCare: insert })
+  await useGame.getState().care('feed', NOW)
+  await useGame.getState().care('pet', NOW)
+  expect(useGame.getState().consumePending()).toBe('feed')
+  expect(useGame.getState().consumePending()).toBe('pet')
+  expect(useGame.getState().consumePending()).toBeUndefined()
+})
