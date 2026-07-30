@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { happinessFrom } from '../domain/happiness'
 import { levelForXp, xpIntoLevel } from '../domain/level'
 import { selectLastCaredAt, selectXp, useGame } from '../state/store'
@@ -5,8 +6,9 @@ import { selectLastCaredAt, selectXp, useGame } from '../state/store'
 const MOOD_LABEL = { happy: '행복해요 🥰', ok: '무난해요 🙂', sad: '시무룩… 🥺', grimy: '꼬질꼬질… 🫠' }
 
 export function Hud() {
-  const xp = useGame(selectXp)
-  const last = useGame(selectLastCaredAt)
+  const careLog = useGame((s) => s.careLog) // 안정적인 참조 — selectXp/selectLastCaredAt 결과를 직접 구독하면 매 렌더 새 값이라 무한 루프
+  const xp = useMemo(() => selectXp({ careLog }), [careLog])
+  const last = useMemo(() => selectLastCaredAt({ careLog }), [careLog])
   const level = levelForXp(xp)
   const { current, needed } = xpIntoLevel(xp)
   const mood = happinessFrom(last, new Date())

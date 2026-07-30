@@ -16,21 +16,21 @@ export interface Scene {
   tMs: number
 }
 
-/** 캐릭터 기준점(스프라이트 좌상단) 좌표 — 파티클 스폰 위치 계산에도 사용 */
-export function characterPos(scene: Scene): { x: number; y: number } {
+/** 캐릭터 기준점(스프라이트 좌상단) 좌표 + 방향 — 파티클 스폰 위치 계산에도 사용 */
+export function characterPos(scene: Scene): { x: number; y: number; facing: 1 | -1 } {
   const centerX = STAGE_W / 2 - SPRITE_W / 2
   const baseY = FLOOR_Y - SPRITE_H
   switch (scene.state) {
     case 'walk': {
-      const { x } = pingPong(scene.tMs, 40, 30, STAGE_W - 30 - SPRITE_W)
-      return { x, y: baseY + bobY(scene.tMs, 1, 400) }
+      const { x, facing } = pingPong(scene.tMs, 40, 30, STAGE_W - 30 - SPRITE_W)
+      return { x, y: baseY + bobY(scene.tMs, 1, 400), facing }
     }
     case 'happy':
-      return { x: centerX, y: baseY + hopY(scene.tMs, 10, 500) }
+      return { x: centerX, y: baseY + hopY(scene.tMs, 10, 500), facing: 1 }
     case 'sad':
-      return { x: centerX, y: baseY + 4 } // 축 처짐
+      return { x: centerX, y: baseY + 4, facing: 1 } // 축 처짐
     default:
-      return { x: centerX, y: baseY + bobY(scene.tMs, 2, 900) }
+      return { x: centerX, y: baseY + bobY(scene.tMs, 2, 900), facing: 1 }
   }
 }
 
@@ -42,18 +42,27 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
   ctx.fillRect(0, FLOOR_Y, STAGE_W, STAGE_H - FLOOR_Y)
 
   const palette = scene.mood === 'grimy' ? PALETTE_GRIMY : PALETTE_NORMAL
-  const { x, y } = characterPos(scene)
+  const { x, y, facing } = characterPos(scene)
 
   if (scene.state === 'eat') {
     const { sx, sy } = chewSquash((scene.tMs % 2000) / 2000)
     ctx.save()
     ctx.translate(x + SPRITE_W / 2, y + SPRITE_H)
-    ctx.scale(sx, sy)
+    ctx.scale(sx * facing, sy) // eat 진입 시 facing은 항상 1이지만 방향 규약을 일관되게 유지
     drawPixelMap(ctx, BLOB_MAP, palette, -SPRITE_W / 2, -SPRITE_H, SCALE)
     ctx.restore()
     return
   }
-  drawPixelMap(ctx, BLOB_MAP, palette, x, y, SCALE)
+
+  if (facing === -1) {
+    ctx.save()
+    ctx.translate(x + SPRITE_W / 2, 0)
+    ctx.scale(-1, 1) // 좌우 반전: walk 중 방향 전환 표현
+    drawPixelMap(ctx, BLOB_MAP, palette, -SPRITE_W / 2, y, SCALE)
+    ctx.restore()
+  } else {
+    drawPixelMap(ctx, BLOB_MAP, palette, x, y, SCALE)
+  }
 
   if (scene.state === 'sad') {
     ctx.fillStyle = '#7ec8e3' // 눈물 한 방울

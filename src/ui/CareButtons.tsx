@@ -1,9 +1,11 @@
+import { useMemo } from 'react'
 import { canCareToday } from '../domain/care'
 import { PLAYER_ID, selectActions, useGame } from '../state/store'
 
 export function CareButtons() {
   const care = useGame((s) => s.care)
-  const actions = useGame(selectActions) // careLog 변경 시 자동 리렌더
+  const careLog = useGame((s) => s.careLog) // 안정적인 참조 — selectActions 결과를 직접 구독하면 매 렌더 새 배열이라 무한 루프
+  const actions = useMemo(() => selectActions({ careLog }), [careLog])
   const now = new Date()
   const canFeed = canCareToday(actions, PLAYER_ID, 'feed', now)
   const canPet = canCareToday(actions, PLAYER_ID, 'pet', now)

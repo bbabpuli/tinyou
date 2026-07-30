@@ -22,12 +22,12 @@ export function Stage() {
       const input = store.consumePending()
       const mood = happinessFrom(selectLastCaredAt(store), new Date())
       fsm.setMood(mood)
+      if (input) fsm.enqueue(input)
+      fsm.update(dt) // enqueue는 전이를 일으키지 않으므로, 스폰 위치는 update 이후 상태로 계산한다
       if (input) {
-        fsm.enqueue(input)
         const pos = characterPos({ state: fsm.state, mood, tMs })
         particles.spawnHearts(pos.x + 30, pos.y, input === 'pet' ? 6 : 3)
       }
-      fsm.update(dt)
       particles.update(dt)
       renderScene(ctx, { state: fsm.state, mood, tMs })
       particles.draw(ctx)
