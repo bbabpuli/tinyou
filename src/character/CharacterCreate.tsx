@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { generateAvatar } from '../game/avatar'
 import { drawPixelMap } from '../game/sprite'
+import { supabase } from '../lib/supabase'
 import { QUESTIONS } from './questions'
 
 export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element {
   const [answers, setAnswers] = useState<string[]>(QUESTIONS.map(() => ''))
   const [step, setStep] = useState<'cards' | 'preview'>('cards')
-  const [busy] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [name, setName] = useState('')
-  const [error] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -29,9 +30,38 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
   }
 
   const confirmName = async () => {
-    // Task 12: upload-character 연결
-    // onDone will be called after character is uploaded
-    void onDone
+    setBusy(true)
+    setError(null)
+    const canvas = canvasRef.current
+    if (!canvas) {
+      setBusy(false)
+      return
+    }
+    const base64 = canvas.toDataURL('image/png').split(',')[1]
+    const { data, error } = await supabase.functions.invoke('upload-character', {
+      body: { imageBase64: base64, name },
+    })
+    setBusy(false)
+    let code: string = data?.error ?? ''
+    if (error && !code) {
+      const ctx = (error as { context?: Response }).context
+      if (ctx) {
+        try {
+          code = ((await ctx.json()) as { error?: string }).error ?? ''
+        } catch {
+          // 본문이 JSON이 아니면 일반 실패
+        }
+      }
+    }
+    if (error || code) {
+      setError(
+        code === 'GENERATION_LIMIT' ? '확정 가능 횟수를 모두 썼어요 🥲'
+        : code === 'PARTNER_NOT_JOINED' ? '연인이 아직 방에 들어오지 않았어요'
+        : '저장에 실패했어요. 잠시 후 다시 시도해주세요',
+      )
+      return
+    }
+    onDone()
   }
 
   if (step === 'cards') {
