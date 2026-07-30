@@ -6,13 +6,14 @@ import { BLOB_MAP, drawPixelMap, PALETTE_GRIMY, PALETTE_NORMAL } from './sprite'
 export const STAGE_W = 320
 export const STAGE_H = 240
 const SCALE = 5
-const SPRITE_W = BLOB_MAP[0].length * SCALE
-const SPRITE_H = BLOB_MAP.length * SCALE
+export const SPRITE_W = BLOB_MAP[0].length * SCALE
+export const SPRITE_H = BLOB_MAP.length * SCALE
 const FLOOR_Y = 200
 
 export interface Scene {
   state: CharState
   mood: Happiness
+  /** 상태별 위상 시계(ms) — 전역 누적 시간이 아니라 CharacterFsm.phaseMs를 넣는다 (전이 시 순간이동 방지) */
   tMs: number
 }
 

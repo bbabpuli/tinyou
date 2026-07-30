@@ -82,3 +82,49 @@ test('큰 dt는 오버플로를 다음 단계로 이월', () => {
   fsm.update(1000) // happy 정확히 소진
   expect(['idle', 'walk']).toContain(fsm.state)
 })
+
+test('phaseMs는 0에서 시작해 dt만큼 누적', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  expect(fsm.phaseMs).toBe(0)
+  fsm.update(16)
+  fsm.update(16)
+  expect(fsm.phaseMs).toBe(32)
+})
+
+test('평상 전이에서 phaseMs가 리셋 (idle→walk 순간 위상 점프 없음)', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.update(2900)
+  expect(fsm.state).toBe('idle')
+  expect(fsm.phaseMs).toBe(2900)
+  fsm.update(100) // idle 3000ms 정확히 소진 → walk 시작
+  expect(fsm.state).toBe('walk')
+  expect(fsm.phaseMs).toBe(0)
+})
+
+test('큐 시작 전이에서 phaseMs 리셋', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.update(1000)
+  expect(fsm.phaseMs).toBe(1000)
+  fsm.enqueue('feed')
+  fsm.update(16) // eat 시작
+  expect(fsm.state).toBe('eat')
+  expect(fsm.phaseMs).toBe(16) // 리셋 후 이번 프레임분만
+})
+
+test('eat→happy 전이에서 phaseMs는 초과분으로 리셋', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.enqueue('feed')
+  fsm.update(16) // eat 시작, 잔여 1984ms
+  fsm.update(2000) // eat 소진 + 16ms 초과 → happy
+  expect(fsm.state).toBe('happy')
+  expect(fsm.phaseMs).toBe(16) // 이월된 초과분만큼만 진행된 상태
+})
+
+test('한 update에서 다단 전이해도 phaseMs는 마지막 상태 기준', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.enqueue('feed')
+  fsm.update(16) // eat 시작 (잔여 1984)
+  fsm.update(1984 + 1500 + 300) // eat·happy 모두 소진 → 평상 상태로 300ms 진입
+  expect(['idle', 'walk']).toContain(fsm.state)
+  expect(fsm.phaseMs).toBe(300)
+})
