@@ -31,7 +31,10 @@ export function useCharacters(coupleId: string | undefined, myUserId: string | u
   const latestKeyRef = useRef(`${coupleId}:${myUserId}`)
 
   const refresh = useCallback(() => {
-    if (!coupleId || !myUserId) return
+    if (!coupleId || !myUserId) {
+      setLoading(false)
+      return
+    }
     const capturedKey = `${coupleId}:${myUserId}`
     setLoading(true)
     supabase

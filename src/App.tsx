@@ -19,10 +19,11 @@ export function App() {
     userId,
   )
   const loadCare = useGame((s) => s.loadCare)
+  const mineId = mine?.id
 
   useEffect(() => {
-    if (mine && userId) void loadCare(mine.id, userId)
-  }, [mine, userId, loadCare])
+    if (mineId && userId) void loadCare(mineId, userId)
+  }, [mineId, userId, loadCare])
 
   let body
   if (authLoading || (userId && (coupleLoading || charLoading))) body = <p>불러오는 중…</p>
