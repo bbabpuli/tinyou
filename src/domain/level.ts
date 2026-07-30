@@ -15,5 +15,10 @@ export function xpIntoLevel(xp: number): { current: number; needed: number } {
   const level = levelForXp(xp)
   const base = cumXpForLevel(level)
   const next = cumXpForLevel(level + 1)
-  return { current: xp - base, needed: next - base }
+  const current = xp - base
+  const needed = next - base
+  return {
+    current: level === MAX_LEVEL ? Math.min(current, needed) : current,
+    needed
+  }
 }

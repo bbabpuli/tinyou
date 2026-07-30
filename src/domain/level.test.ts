@@ -25,3 +25,8 @@ test('레벨 내 진행도', () => {
   // xp=40: 레벨2 (30 필요했음), 다음 레벨까지 90-30=60 중 10 진행
   expect(xpIntoLevel(40)).toEqual({ current: 10, needed: 60 })
 })
+
+test('레벨 99 캡에서 게이지가 오버플로하지 않음', () => {
+  const { current, needed } = xpIntoLevel(200000)
+  expect(current).toBeLessThanOrEqual(needed)
+})
