@@ -5,10 +5,15 @@ const MAX_BYTES = 32 * 1024
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 const UNIQUE_VIOLATION = '23505'
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
   })
 }
 
@@ -91,6 +96,7 @@ async function reserveUploadSlot(
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS })
   if (req.method !== 'POST') return json(405, { error: 'METHOD_NOT_ALLOWED' })
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
