@@ -1,5 +1,5 @@
 import type { Happiness } from '../domain/happiness'
-import { bobY, chewSquash, hopY, pingPong } from './animMath'
+import { bobY, chewSquash, hopY } from './animMath'
 import type { CharState } from './fsm'
 import { BLOB_MAP, drawPixelMap, PALETTE_GRIMY, PALETTE_NORMAL } from './sprite'
 
@@ -9,30 +9,58 @@ const SCALE = 5
 export const SPRITE_W = BLOB_MAP[0].length * SCALE
 export const SPRITE_H = BLOB_MAP.length * SCALE
 const FLOOR_Y = 200
+/**
+ * 생성 이미지는 16×16 도트를 정수 4배(64×64)로 확대해 정사각으로 그린다.
+ * 스프라이트 박스(60×45)에 맞춰 늘리면 세로가 눌려 왜곡되므로, 가로는 박스 중앙에 맞추고
+ * 세로는 박스 하단(= FLOOR_Y)에 맞춘다. 이미지가 박스보다 19px 위로 더 커지는 건 의도된 것.
+ */
+export const SPRITE_IMAGE_SIZE = 64
 
 export interface Scene {
   state: CharState
   mood: Happiness
   /** 상태별 위상 시계(ms) — 전역 누적 시간이 아니라 CharacterFsm.phaseMs를 넣는다 (전이 시 순간이동 방지) */
   tMs: number
+  /** Walker가 소유한 영속 x좌표 (모든 상태에서 이 값을 그대로 사용 — 전이 시 순간이동 없음) */
+  x: number
+  facing: 1 | -1
+  /** AI 생성 캐릭터 이미지 — 있으면 BLOB_MAP 대신 이걸 드로우한다 */
+  image?: HTMLImageElement
 }
 
 /** 캐릭터 기준점(스프라이트 좌상단) 좌표 + 방향 — 파티클 스폰 위치 계산에도 사용 */
 export function characterPos(scene: Scene): { x: number; y: number; facing: 1 | -1 } {
-  const centerX = STAGE_W / 2 - SPRITE_W / 2
   const baseY = FLOOR_Y - SPRITE_H
   switch (scene.state) {
-    case 'walk': {
-      const { x, facing } = pingPong(scene.tMs, 40, 30, STAGE_W - 30 - SPRITE_W)
-      return { x, y: baseY + bobY(scene.tMs, 1, 400), facing }
-    }
+    case 'walk':
+      return { x: scene.x, y: baseY + bobY(scene.tMs, 1, 400), facing: scene.facing }
     case 'happy':
-      return { x: centerX, y: baseY + hopY(scene.tMs, 10, 500), facing: 1 }
+      return { x: scene.x, y: baseY + hopY(scene.tMs, 10, 500), facing: 1 }
     case 'sad':
-      return { x: centerX, y: baseY + 4, facing: 1 } // 축 처짐
+      return { x: scene.x, y: baseY + 4, facing: 1 } // 축 처짐
     default:
-      return { x: centerX, y: baseY + bobY(scene.tMs, 2, 900), facing: 1 }
+      return { x: scene.x, y: baseY + bobY(scene.tMs, 2, 900), facing: 1 }
   }
+}
+
+/** 캐릭터 한 마리를 그린다 — scene.image가 있으면 생성 이미지, 없으면 BLOB_MAP 폴백 */
+function drawCharacter(ctx: CanvasRenderingContext2D, scene: Scene, x: number, y: number): void {
+  if (scene.image) {
+    if (scene.mood === 'grimy') ctx.filter = 'grayscale(60%)'
+    // 정사각 유지 + 하단(바닥) 정렬. 호출부(eat 스쿼시·좌우 반전)도 이 함수를 거치므로
+    // 변환 좌표계 안에서도 같은 정사각 기준이 그대로 적용된다.
+    ctx.drawImage(
+      scene.image,
+      x + (SPRITE_W - SPRITE_IMAGE_SIZE) / 2,
+      y + SPRITE_H - SPRITE_IMAGE_SIZE,
+      SPRITE_IMAGE_SIZE,
+      SPRITE_IMAGE_SIZE,
+    )
+    ctx.filter = 'none'
+    return
+  }
+  const palette = scene.mood === 'grimy' ? PALETTE_GRIMY : PALETTE_NORMAL
+  drawPixelMap(ctx, BLOB_MAP, palette, x, y, SCALE)
 }
 
 export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
@@ -42,7 +70,6 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
   ctx.fillStyle = '#e8d5c4'
   ctx.fillRect(0, FLOOR_Y, STAGE_W, STAGE_H - FLOOR_Y)
 
-  const palette = scene.mood === 'grimy' ? PALETTE_GRIMY : PALETTE_NORMAL
   const { x, y, facing } = characterPos(scene)
 
   if (scene.state === 'eat') {
@@ -50,7 +77,7 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
     ctx.save()
     ctx.translate(x + SPRITE_W / 2, y + SPRITE_H)
     ctx.scale(sx * facing, sy) // eat 진입 시 facing은 항상 1이지만 방향 규약을 일관되게 유지
-    drawPixelMap(ctx, BLOB_MAP, palette, -SPRITE_W / 2, -SPRITE_H, SCALE)
+    drawCharacter(ctx, scene, -SPRITE_W / 2, -SPRITE_H)
     ctx.restore()
     return
   }
@@ -59,10 +86,10 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
     ctx.save()
     ctx.translate(x + SPRITE_W / 2, 0)
     ctx.scale(-1, 1) // 좌우 반전: walk 중 방향 전환 표현
-    drawPixelMap(ctx, BLOB_MAP, palette, -SPRITE_W / 2, y, SCALE)
+    drawCharacter(ctx, scene, -SPRITE_W / 2, y)
     ctx.restore()
   } else {
-    drawPixelMap(ctx, BLOB_MAP, palette, x, y, SCALE)
+    drawCharacter(ctx, scene, x, y)
   }
 
   if (scene.state === 'sad') {

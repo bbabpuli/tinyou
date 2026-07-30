@@ -1381,3 +1381,428 @@ git commit -m "feat: 앱 라우팅 조립 — 로그인→둥지→분신 탄생
 - 꾸미기 unlocks (레벨 보상)
 - PWA manifest·오프라인 토스트, nginx+cloudflared 배포 (pay-pos 패턴), 도메인
 - 상대 분신 구경 화면 ("연인 화면 엿보기")
+
+---
+
+## 개정 (2026-07-30): 하이브리드 캐릭터 생성
+
+사용자 결정: Recraft AI 생성 대신 **절차적 도트 파츠 조합**으로 v1 완성 (가입/키/비용 제로). AI 생성은 추후 옵션으로 스키마·함수 구조를 보존한 채 추가 가능. 기존 Task 6은 실행하지 않으며 Task 11·12가 대체한다. UX 개선점: 미리보기·다시 뽑기는 **로컬이라 즉시·무제한**, 서버 업로드(확정)만 한도 4회를 적용한다.
+
+### Task 11: 도트 아바타 생성기 + 로컬 미리보기 (TDD)
+
+**Files:**
+- Create: `src/game/avatar.ts`
+- Modify: `src/character/CharacterCreate.tsx` (Edge Function invoke 제거 → 로컬 생성 미리보기)
+- Test: `src/game/avatar.test.ts`
+
+**Interfaces:**
+- Consumes: `drawPixelMap` (src/game/sprite.ts), 답변 배열 (Task 5·7)
+- Produces:
+  - `generateAvatar(answers: string[], salt: number): { map: string[]; palette: Record<string, string> }` — 16×16 문자 그리드. 같은 입력 → 같은 결과(결정적), salt 변경 → 파츠 변형
+  - `hashSeed(text: string): number` — FNV-1a 32비트
+  - `<CharacterCreate />` preview 단계: canvas 로컬 렌더 + "다시 뽑기"(salt+1, 무제한) + 이름 입력. 확정 버튼 핸들러는 빈 async 함수 + 주석 `// Task 12: upload-character 연결`로 준비만 (기존 confirmName의 auth/name update 로직 삭제)
+  - Task 12가 `generateAvatar`와 preview canvas ref를 사용
+
+- [ ] **Step 1: Write the failing test**
+
+`src/game/avatar.test.ts`:
+```ts
+import { expect, test } from 'vitest'
+import { generateAvatar, hashSeed } from './avatar'
+
+const ANSWERS = ['밝고 웃음이 많은 사람', '햄스터 같음', '노란색', '눈 비비는 모습']
+
+test('hashSeed는 결정적이고 입력이 다르면 대체로 다름', () => {
+  expect(hashSeed('abc')).toBe(hashSeed('abc'))
+  expect(hashSeed('abc')).not.toBe(hashSeed('abd'))
+})
+
+test('같은 답변·salt는 같은 아바타 (결정적)', () => {
+  const a = generateAvatar(ANSWERS, 0)
+  const b = generateAvatar(ANSWERS, 0)
+  expect(a).toEqual(b)
+})
+
+test('salt를 바꾸면 0..7 중 서로 다른 아바타가 2종 이상', () => {
+  const variants = new Set(
+    Array.from({ length: 8 }, (_, s) => JSON.stringify(generateAvatar(ANSWERS, s))),
+  )
+  expect(variants.size).toBeGreaterThanOrEqual(2)
+})
+
+test('맵은 16×16이고 모든 문자는 팔레트 키 또는 점', () => {
+  const { map, palette } = generateAvatar(ANSWERS, 3)
+  expect(map).toHaveLength(16)
+  for (const row of map) {
+    expect(row).toHaveLength(16)
+    for (const ch of row) {
+      if (ch !== '.') expect(palette[ch]).toMatch(/^#[0-9a-f]{6}$/i)
+    }
+  }
+})
+
+test('빈 답변도 유효한 아바타 생성', () => {
+  const { map } = generateAvatar([], 0)
+  expect(map.join('').replace(/\./g, '').length).toBeGreaterThan(20)
+})
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run src/game/avatar.test.ts`
+Expected: FAIL — 모듈 없음
+
+- [ ] **Step 3: Write minimal implementation**
+
+`src/game/avatar.ts`:
+```ts
+/**
+ * 절차적 도트 아바타: 답변 텍스트+salt를 해시해 파츠(몸 색·모양·눈·입·볼·액세서리)를
+ * 결정적으로 조합한다. 16×16 문자 그리드 + 팔레트 반환 (drawPixelMap과 호환).
+ */
+
+export function hashSeed(text: string): number {
+  let h = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return h >>> 0
+}
+
+// 몸 색: {B: 본체, S: 음영, C: 볼}
+const BODY_COLORS: { B: string; S: string; C: string }[] = [
+  { B: '#ffb7c9', S: '#e896ab', C: '#ff6b9d' }, // 분홍
+  { B: '#a8e6cf', S: '#84c7ae', C: '#56b58c' }, // 민트
+  { B: '#c9b6e4', S: '#a894c9', C: '#8f6fc0' }, // 라벤더
+  { B: '#ffd3a5', S: '#e6b482', C: '#f08c5a' }, // 피치
+  { B: '#a5d8ff', S: '#7fb8e6', C: '#5a9cf0' }, // 하늘
+  { B: '#fff3a5', S: '#e6d67f', C: '#e6b800' }, // 레몬
+]
+
+// 몸 모양 3종 (16×16, B=본체, 하단은 발/여백)
+const BODY_SHAPES: string[][] = [
+  [ // 둥근 블롭
+    '................',
+    '....BBBBBBBB....',
+    '...BBBBBBBBBB...',
+    '..BBBBBBBBBBBB..',
+    '..BBBBBBBBBBBB..',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '..BBBBBBBBBBBB..',
+    '..BBBBBBBBBBBB..',
+    '...BB.BBBB.BB...',
+    '................',
+    '................',
+    '................',
+  ],
+  [ // 네모 찐빵
+    '................',
+    '..BBBBBBBBBBBB..',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '..BBBBBBBBBBBB..',
+    '...BB.BBBB.BB...',
+    '................',
+    '................',
+    '................',
+  ],
+  [ // 달걀
+    '................',
+    '.....BBBBBB.....',
+    '....BBBBBBBB....',
+    '...BBBBBBBBBB...',
+    '..BBBBBBBBBBBB..',
+    '..BBBBBBBBBBBB..',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '.BBBBBBBBBBBBBB.',
+    '..BBBBBBBBBBBB..',
+    '..BBBBBBBBBBBB..',
+    '...BB.BBBB.BB...',
+    '................',
+    '................',
+    '................',
+  ],
+]
+
+type Stamp = [row: number, col: number, ch: string][]
+
+// 눈 4종 (E=눈동자, W=흰자/반짝)
+const EYES: Stamp[] = [
+  [[6, 4, 'E'], [6, 11, 'E']], // 점눈
+  [[6, 4, 'E'], [5, 5, 'W'], [6, 11, 'E'], [5, 10, 'W']], // 반짝
+  [[6, 3, 'E'], [6, 4, 'E'], [6, 11, 'E'], [6, 12, 'E']], // 졸린 가로눈
+  [[6, 4, 'E'], [6, 10, 'E'], [6, 11, 'E'], [6, 12, 'E']], // 윙크
+]
+
+// 입 4종 (M)
+const MOUTHS: Stamp[] = [
+  [[9, 7, 'M'], [9, 8, 'M']], // 미소
+  [[9, 7, 'M'], [9, 8, 'M'], [10, 7, 'M'], [10, 8, 'M']], // 아-
+  [[9, 6, 'M'], [10, 7, 'M'], [9, 8, 'M']], // :3
+  [[9, 7, 'M']], // 무표정
+]
+
+// 볼터치 2종 (C)
+const CHEEKS: Stamp[] = [
+  [[8, 3, 'C'], [8, 12, 'C']],
+  [],
+]
+
+// 액세서리 5종 (A)
+const ACCESSORIES: Stamp[] = [
+  [], // 없음
+  [[0, 7, 'A'], [1, 6, 'A'], [1, 8, 'A'], [0, 8, 'A']], // 리본
+  [[0, 8, 'A'], [1, 8, 'A'], [0, 7, 'A']], // 새싹
+  [[0, 5, 'A'], [0, 6, 'A'], [0, 7, 'A'], [0, 8, 'A'], [0, 9, 'A'], [0, 10, 'A'], [1, 7, 'A'], [1, 8, 'A']], // 모자
+  [[0, 7, 'A'], [1, 6, 'A'], [1, 8, 'A'], [2, 7, 'A']], // 별
+]
+
+const ACCESSORY_COLORS = ['#f08c5a', '#56b58c', '#5a9cf0', '#e6b800', '#8f6fc0']
+
+export interface Avatar {
+  map: string[]
+  palette: Record<string, string>
+}
+
+export function generateAvatar(answers: string[], salt: number): Avatar {
+  const seed = hashSeed(answers.map((a) => a.trim()).join('') + ':' + String(salt))
+  const pick = (n: number, shift: number) => (seed >>> shift) % n
+
+  const color = BODY_COLORS[pick(BODY_COLORS.length, 0)]
+  const shape = BODY_SHAPES[pick(BODY_SHAPES.length, 4)]
+  const eyes = EYES[pick(EYES.length, 8)]
+  const mouth = MOUTHS[pick(MOUTHS.length, 12)]
+  const cheeks = CHEEKS[pick(CHEEKS.length, 16)]
+  const accessory = ACCESSORIES[pick(ACCESSORIES.length, 20)]
+  const accessoryColor = ACCESSORY_COLORS[pick(ACCESSORY_COLORS.length, 24)]
+
+  const grid = shape.map((row) => row.split(''))
+  const stampAll = (stamp: Stamp) => {
+    for (const [r, c, ch] of stamp) grid[r][c] = ch
+  }
+  // 몸 최하단 픽셀에 음영
+  for (let c = 0; c < 16; c++) {
+    for (let r = 15; r >= 0; r--) {
+      if (grid[r][c] === 'B') {
+        grid[r][c] = 'S'
+        break
+      }
+    }
+  }
+  stampAll(eyes)
+  stampAll(mouth)
+  stampAll(cheeks)
+  stampAll(accessory)
+
+  return {
+    map: grid.map((row) => row.join('')),
+    palette: {
+      B: color.B,
+      S: color.S,
+      C: color.C,
+      E: '#333333',
+      W: '#ffffff',
+      M: '#a2574f',
+      A: accessoryColor,
+    },
+  }
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run src/game/avatar.test.ts`
+Expected: PASS (5개)
+
+- [ ] **Step 5: CharacterCreate 로컬 미리보기 개편**
+
+`src/character/CharacterCreate.tsx`에서:
+- `supabase.functions.invoke('generate-character', ...)` 호출과 error.context 파싱 제거
+- 상태 `attempt: number`(초기 0) 추가. preview 단계는 `<canvas ref={canvasRef} width={16} height={16} style={{ width: 240, imageRendering: 'pixelated' }}>`에 `useEffect(() => { ... }, [answers, attempt, step])`로 `generateAvatar(answers, attempt)`를 `drawPixelMap(ctx, map, palette, 0, 0, 1)`로 렌더 (렌더 전 `ctx.clearRect(0,0,16,16)`, `ctx.imageSmoothingEnabled = false`)
+- "분신 만나러 가기" = `setStep('preview')` (네트워크 없음), "다시 뽑기" = `setAttempt((a) => a + 1)` (무제한 — 잔여 횟수 표기 제거)
+- 확정 버튼 핸들러는 빈 async 함수 + `// Task 12: upload-character 연결` 주석 (기존 confirmName의 auth/update 로직 삭제)
+- 미사용 import 정리 — strict 빌드 통과 필수
+
+- [ ] **Step 6: 전체 검증**
+
+Run: `npm test && npm run build`
+Expected: 전체 PASS (72개 이상)
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/game/avatar.ts src/game/avatar.test.ts src/character/CharacterCreate.tsx
+git commit -m "feat: 절차적 도트 아바타 생성기와 로컬 미리보기 (하이브리드 개정)"
+```
+
+---
+
+### Task 12: upload-character Edge Function + 확정 업로드 연결
+
+**Files:**
+- Create: `supabase/functions/upload-character/index.ts`
+- Modify: `src/character/CharacterCreate.tsx` (확정 핸들러 구현)
+- Test: 배포 후 curl 스모크 + `npm test` 회귀
+
+**Interfaces:**
+- Consumes: Task 11의 preview canvas ref, `characters`/`profiles` 스키마 (Task 2). 함수 시크릿 불필요 (외부 API 없음)
+- Produces: POST `/functions/v1/upload-character` — body `{ imageBase64: string; name: string }`, 응답 200 `{ imageUrl }` / 401 UNAUTHORIZED / 400 BAD_REQUEST / 403 NO_COUPLE·PARTNER_NOT_JOINED / 413 IMAGE_TOO_LARGE / 415 NOT_PNG / 429 GENERATION_LIMIT. 성공 시 characters upsert(name 포함, regen_count+1, 한도 4)
+
+- [ ] **Step 1: Edge Function 구현**
+
+`supabase/functions/upload-character/index.ts`:
+```ts
+import { createClient } from 'npm:@supabase/supabase-js@2'
+
+const MAX_UPLOADS = 4 // 확정(업로드) 한도 — 로컬 미리보기는 무제한
+const MAX_BYTES = 32 * 1024
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47]
+
+function json(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') return json(405, { error: 'METHOD_NOT_ALLOWED' })
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
+  })
+  const { data: { user } } = await userClient.auth.getUser()
+  if (!user) return json(401, { error: 'UNAUTHORIZED' })
+
+  const { imageBase64, name } = (await req.json()) as { imageBase64?: string; name?: string }
+  if (!imageBase64 || !name?.trim()) return json(400, { error: 'BAD_REQUEST' })
+
+  let bytes: Uint8Array
+  try {
+    bytes = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0))
+  } catch {
+    return json(400, { error: 'BAD_REQUEST' })
+  }
+  if (bytes.length > MAX_BYTES) return json(413, { error: 'IMAGE_TOO_LARGE' })
+  if (!PNG_MAGIC.every((b, i) => bytes[i] === b)) return json(415, { error: 'NOT_PNG' })
+
+  const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+
+  const { data: me } = await admin
+    .from('profiles').select('couple_id').eq('user_id', user.id).single()
+  if (!me?.couple_id) return json(403, { error: 'NO_COUPLE' })
+  const { data: partner } = await admin
+    .from('profiles').select('user_id')
+    .eq('couple_id', me.couple_id).neq('user_id', user.id).maybeSingle()
+  if (!partner) return json(403, { error: 'PARTNER_NOT_JOINED' })
+
+  const { data: existing } = await admin
+    .from('characters').select('id, regen_count')
+    .eq('couple_id', me.couple_id).eq('owner_user_id', user.id).maybeSingle()
+  const used = existing?.regen_count ?? 0
+  if (used >= MAX_UPLOADS) return json(429, { error: 'GENERATION_LIMIT' })
+
+  const characterId = existing?.id ?? crypto.randomUUID()
+  const imagePath = `${characterId}/${crypto.randomUUID()}.png`
+  const { error: uploadError } = await admin.storage
+    .from('characters')
+    .upload(imagePath, bytes, { contentType: 'image/png' })
+  if (uploadError) {
+    console.error('upload error', uploadError)
+    return json(502, { error: 'UPLOAD_FAILED' })
+  }
+
+  const { error: upsertError } = await admin.from('characters').upsert({
+    id: characterId,
+    couple_id: me.couple_id,
+    owner_user_id: user.id,
+    subject_user_id: partner.user_id,
+    name: name.trim(),
+    image_path: imagePath,
+    regen_count: used + 1,
+  })
+  if (upsertError) {
+    console.error('upsert error', upsertError)
+    return json(502, { error: 'SAVE_FAILED' })
+  }
+
+  const { data: pub } = admin.storage.from('characters').getPublicUrl(imagePath)
+  return json(200, { imageUrl: pub.publicUrl })
+})
+```
+
+- [ ] **Step 2: CharacterCreate 확정 핸들러 구현**
+
+Task 11에서 비워둔 확정 핸들러를 구현 (supabase import 복원, canvas는 미리보기 ref 재사용):
+```ts
+const confirm = async () => {
+  setBusy(true)
+  setError(null)
+  const canvas = canvasRef.current
+  if (!canvas) {
+    setBusy(false)
+    return
+  }
+  const base64 = canvas.toDataURL('image/png').split(',')[1]
+  const { data, error } = await supabase.functions.invoke('upload-character', {
+    body: { imageBase64: base64, name },
+  })
+  setBusy(false)
+  let code: string = data?.error ?? ''
+  if (error && !code) {
+    const ctx = (error as { context?: Response }).context
+    if (ctx) {
+      try {
+        code = ((await ctx.json()) as { error?: string }).error ?? ''
+      } catch {
+        // 본문이 JSON이 아니면 일반 실패
+      }
+    }
+  }
+  if (error || code) {
+    setError(
+      code === 'GENERATION_LIMIT' ? '확정 가능 횟수를 모두 썼어요 🥲'
+      : code === 'PARTNER_NOT_JOINED' ? '연인이 아직 방에 들어오지 않았어요'
+      : '저장에 실패했어요. 잠시 후 다시 시도해주세요',
+    )
+    return
+  }
+  onDone()
+}
+```
+
+- [ ] **Step 3: 배포 및 스모크**
+
+Run:
+```bash
+supabase functions deploy upload-character
+curl -s -o /dev/null -w '%{http_code}' -X POST https://hhdspjlnxgcwpbughsdb.supabase.co/functions/v1/upload-character -H "Content-Type: application/json" -d '{}'
+```
+Expected: 배포 성공, curl `401`
+
+- [ ] **Step 4: 전체 검증**
+
+Run: `npm test && npm run build`
+Expected: 전체 PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add supabase/functions/upload-character src/character/CharacterCreate.tsx
+git commit -m "feat: upload-character Edge Function과 확정 업로드 연결"
+```
