@@ -1,5 +1,5 @@
 import type { Happiness } from '../domain/happiness'
-import { bobY, chewSquash, hopY, pingPong } from './animMath'
+import { bobY, chewSquash, hopY } from './animMath'
 import type { CharState } from './fsm'
 import { BLOB_MAP, drawPixelMap, PALETTE_GRIMY, PALETTE_NORMAL } from './sprite'
 
@@ -15,23 +15,23 @@ export interface Scene {
   mood: Happiness
   /** 상태별 위상 시계(ms) — 전역 누적 시간이 아니라 CharacterFsm.phaseMs를 넣는다 (전이 시 순간이동 방지) */
   tMs: number
+  /** Walker가 소유한 영속 x좌표 (모든 상태에서 이 값을 그대로 사용 — 전이 시 순간이동 없음) */
+  x: number
+  facing: 1 | -1
 }
 
 /** 캐릭터 기준점(스프라이트 좌상단) 좌표 + 방향 — 파티클 스폰 위치 계산에도 사용 */
 export function characterPos(scene: Scene): { x: number; y: number; facing: 1 | -1 } {
-  const centerX = STAGE_W / 2 - SPRITE_W / 2
   const baseY = FLOOR_Y - SPRITE_H
   switch (scene.state) {
-    case 'walk': {
-      const { x, facing } = pingPong(scene.tMs, 40, 30, STAGE_W - 30 - SPRITE_W)
-      return { x, y: baseY + bobY(scene.tMs, 1, 400), facing }
-    }
+    case 'walk':
+      return { x: scene.x, y: baseY + bobY(scene.tMs, 1, 400), facing: scene.facing }
     case 'happy':
-      return { x: centerX, y: baseY + hopY(scene.tMs, 10, 500), facing: 1 }
+      return { x: scene.x, y: baseY + hopY(scene.tMs, 10, 500), facing: 1 }
     case 'sad':
-      return { x: centerX, y: baseY + 4, facing: 1 } // 축 처짐
+      return { x: scene.x, y: baseY + 4, facing: 1 } // 축 처짐
     default:
-      return { x: centerX, y: baseY + bobY(scene.tMs, 2, 900), facing: 1 }
+      return { x: scene.x, y: baseY + bobY(scene.tMs, 2, 900), facing: 1 }
   }
 }
 

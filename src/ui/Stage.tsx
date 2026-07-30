@@ -4,6 +4,7 @@ import { createCharacterFsm } from '../game/fsm'
 import { startLoop } from '../game/loop'
 import { ParticleSystem } from '../game/particles'
 import { characterPos, renderScene, SPRITE_W, STAGE_H, STAGE_W } from '../game/render'
+import { createWalker } from '../game/walker'
 import { selectLastCaredAt, useGame } from '../state/store'
 
 const MOOD_REFRESH_MS = 1000
@@ -16,6 +17,11 @@ export function Stage() {
     ctx.imageSmoothingEnabled = false
     const fsm = createCharacterFsm()
     const particles = new ParticleSystem()
+    const walker = createWalker({
+      initialX: 160 - SPRITE_W / 2,
+      minX: 30,
+      maxX: STAGE_W - 30 - SPRITE_W,
+    })
 
     // 매 프레임 careLog 전체를 재파생하지 않기 위한 캐시 (참조 동일성 + 시간 기반 갱신)
     let lastSeenLog: unknown = null
@@ -41,7 +47,8 @@ export function Stage() {
       fsm.setMood(mood)
       if (input) fsm.enqueue(input)
       fsm.update(dt) // enqueue는 전이를 일으키지 않으므로, 스폰 위치는 update 이후 상태로 계산한다
-      const scene = { state: fsm.state, mood, tMs: fsm.phaseMs }
+      walker.update(dt, fsm.state === 'walk')
+      const scene = { state: fsm.state, mood, tMs: fsm.phaseMs, x: walker.x, facing: walker.facing }
       if (input) {
         const pos = characterPos(scene)
         particles.spawnHearts(pos.x + SPRITE_W / 2, pos.y, input === 'pet' ? 6 : 3)

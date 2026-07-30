@@ -11,10 +11,14 @@ import {
 } from './render'
 
 const FLOOR_Y = 200
-const WALK_MIN_X = 30
-const WALK_MAX_X = STAGE_W - 30 - SPRITE_W
 
-const scene = (state: CharState, tMs: number): Scene => ({ state, mood: 'ok', tMs })
+const scene = (state: CharState, tMs: number, x = 100, facing: 1 | -1 = 1): Scene => ({
+  state,
+  mood: 'ok',
+  tMs,
+  x,
+  facing,
+})
 
 /** 좌표계 변환(save/restore/translate/scale)을 반영해 fillRect를 기록하는 가짜 컨텍스트 */
 function fakeCtx() {
@@ -61,41 +65,42 @@ function spriteExtent(calls: { x: number; w: number }[]) {
   return { min: Math.min(...px.map((c) => c.x)), max: Math.max(...px.map((c) => c.x + c.w)) }
 }
 
-test('phase 0에서 idle은 바닥 위 중앙 (bob 0)', () => {
-  expect(characterPos(scene('idle', 0))).toEqual({
-    x: STAGE_W / 2 - SPRITE_W / 2,
+test('모든 상태에서 x는 scene.x를 그대로 쓴다 (Walker 소유 — 전이 순간이동 없음)', () => {
+  for (const s of ['idle', 'walk', 'happy', 'sad', 'eat'] as CharState[]) {
+    expect(characterPos(scene(s, 0, 77)).x).toBe(77)
+    expect(characterPos(scene(s, 1234, 199)).x).toBe(199)
+  }
+})
+
+test('phase 0에서 idle은 바닥 위 (bob 0)', () => {
+  expect(characterPos(scene('idle', 0, 100))).toEqual({
+    x: 100,
     y: FLOOR_Y - SPRITE_H,
     facing: 1,
   })
 })
 
-test('phase 0에서 walk은 왼쪽 끝에서 오른쪽으로 출발', () => {
-  const pos = characterPos(scene('walk', 0))
-  expect(pos.x).toBe(WALK_MIN_X)
-  expect(pos.facing).toBe(1)
-})
-
 test('phase 0에서 happy는 hop 0 (전이 순간 점프 없음)', () => {
-  expect(characterPos(scene('happy', 0)).y).toBe(FLOOR_Y - SPRITE_H)
+  expect(characterPos(scene('happy', 0, 100)).y).toBe(FLOOR_Y - SPRITE_H)
 })
 
-test('walk의 facing은 pingPong 왕복을 따른다', () => {
-  expect(characterPos(scene('walk', 2000)).facing).toBe(1) // 오른쪽 진행 구간
-  expect(characterPos(scene('walk', 6000)).facing).toBe(-1) // 되돌아오는 구간
+test('walk의 facing은 scene.facing을 그대로 따른다', () => {
+  expect(characterPos(scene('walk', 2000, 100, 1)).facing).toBe(1)
+  expect(characterPos(scene('walk', 6000, 100, -1)).facing).toBe(-1)
 })
 
-test('walk 외 상태의 facing은 항상 1', () => {
+test('walk 외 상태의 facing은 scene.facing과 무관하게 항상 1', () => {
   for (const s of ['idle', 'happy', 'sad', 'eat'] as CharState[]) {
-    expect(characterPos(scene(s, 1234)).facing).toBe(1)
+    expect(characterPos(scene(s, 1234, 100, -1)).facing).toBe(1)
   }
 })
 
-test('walk x는 항상 [30, STAGE_W-30-SPRITE_W] 안에 머문다', () => {
-  for (let tMs = 0; tMs <= 30_000; tMs += 137) {
-    const { x } = characterPos(scene('walk', tMs))
-    expect(x).toBeGreaterThanOrEqual(WALK_MIN_X)
-    expect(x).toBeLessThanOrEqual(WALK_MAX_X)
-  }
+test('y 오프셋은 상태별로 유지된다 (walk=bob 1/400, happy=hop 10/500, sad=+4 고정, idle=bob 2/900)', () => {
+  const baseY = FLOOR_Y - SPRITE_H
+  expect(characterPos(scene('walk', 100, 0)).y).not.toBe(baseY) // bob(100,1,400) != 0
+  expect(characterPos(scene('sad', 0, 0)).y).toBe(baseY + 4)
+  expect(characterPos(scene('happy', 125, 0)).y).toBeLessThan(baseY) // hop은 항상 위로만 움직임(-)
+  expect(characterPos(scene('idle', 0, 0)).y).toBe(baseY) // idle bob(0) = 0
 })
 
 test('renderScene은 배경과 바닥을 먼저 칠한다', () => {
@@ -106,18 +111,18 @@ test('renderScene은 배경과 바닥을 먼저 칠한다', () => {
 })
 
 test('좌우 반전(facing -1)도 facing 1과 같은 x 폭 안에 그려진다', () => {
-  const right = characterPos(scene('walk', 2000))
-  const left = characterPos(scene('walk', 6000))
+  const right = characterPos(scene('walk', 2000, 100, 1))
+  const left = characterPos(scene('walk', 6000, 100, -1))
   expect(right.facing).toBe(1)
   expect(left.facing).toBe(-1)
 
   const ctxR = fakeCtx()
-  renderScene(ctxR, scene('walk', 2000))
+  renderScene(ctxR, scene('walk', 2000, 100, 1))
   const extR = spriteExtent(ctxR.calls)
   expect(extR).toEqual({ min: right.x, max: right.x + SPRITE_W })
 
   const ctxL = fakeCtx()
-  renderScene(ctxL, scene('walk', 6000))
+  renderScene(ctxL, scene('walk', 6000, 100, -1))
   const extL = spriteExtent(ctxL.calls)
   expect(extL).toEqual({ min: left.x, max: left.x + SPRITE_W })
 })
