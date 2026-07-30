@@ -3,19 +3,17 @@ import { supabase } from '../lib/supabase'
 
 export function CoupleSetup({ onDone }: { onDone: () => void }) {
   const [nickname, setNickname] = useState('')
-  const [mode, setMode] = useState<'menu' | 'created' | 'join'>('menu')
+  const [mode, setMode] = useState<'menu' | 'join'>('menu')
   const [code, setCode] = useState('')
-  const [myCode, setMyCode] = useState('')
   const [error, setError] = useState<string | null>(null)
 
+  // 방 생성 성공 시 바로 onDone() — 초대 코드 노출은 WaitingPartner 화면이 이어받는다
+  // (여기서만 보여주면 새로고침 후 코드를 다시 볼 방법이 없어짐)
   const create = async () => {
     setError(null)
-    const { data, error } = await supabase.rpc('create_couple', { p_nickname: nickname })
+    const { error } = await supabase.rpc('create_couple', { p_nickname: nickname })
     if (error) setError(error.message)
-    else {
-      setMyCode(data as string)
-      setMode('created')
-    }
+    else onDone()
   }
 
   const join = async () => {
@@ -24,9 +22,11 @@ export function CoupleSetup({ onDone }: { onDone: () => void }) {
     if (error) {
       const msg = error.message.includes('INVALID_CODE')
         ? '코드를 다시 확인해주세요'
-        : error.message.includes('COUPLE_FULL')
-          ? '이미 두 명이 함께하고 있는 방이에요'
-          : error.message
+        : error.message.includes('CODE_EXPIRED')
+          ? '만료된 코드예요. 연인에게 새 코드를 받아주세요'
+          : error.message.includes('COUPLE_FULL')
+            ? '이미 두 명이 함께하고 있는 방이에요'
+            : error.message
       setError(msg)
     } else onDone()
   }
@@ -39,13 +39,6 @@ export function CoupleSetup({ onDone }: { onDone: () => void }) {
         <>
           <button disabled={!nickname} onClick={create}>새 둥지 만들기</button>
           <button disabled={!nickname} onClick={() => setMode('join')}>초대 코드로 합류</button>
-        </>
-      )}
-      {mode === 'created' && (
-        <>
-          <p>연인에게 이 코드를 보내주세요:</p>
-          <strong style={{ fontSize: 32, letterSpacing: 4 }}>{myCode}</strong>
-          <button onClick={onDone}>연인이 들어왔어요 →</button>
         </>
       )}
       {mode === 'join' && (

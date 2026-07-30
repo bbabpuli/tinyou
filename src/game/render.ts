@@ -9,6 +9,12 @@ const SCALE = 5
 export const SPRITE_W = BLOB_MAP[0].length * SCALE
 export const SPRITE_H = BLOB_MAP.length * SCALE
 const FLOOR_Y = 200
+/**
+ * 생성 이미지는 16×16 도트를 정수 4배(64×64)로 확대해 정사각으로 그린다.
+ * 스프라이트 박스(60×45)에 맞춰 늘리면 세로가 눌려 왜곡되므로, 가로는 박스 중앙에 맞추고
+ * 세로는 박스 하단(= FLOOR_Y)에 맞춘다. 이미지가 박스보다 19px 위로 더 커지는 건 의도된 것.
+ */
+export const SPRITE_IMAGE_SIZE = 64
 
 export interface Scene {
   state: CharState
@@ -41,7 +47,15 @@ export function characterPos(scene: Scene): { x: number; y: number; facing: 1 | 
 function drawCharacter(ctx: CanvasRenderingContext2D, scene: Scene, x: number, y: number): void {
   if (scene.image) {
     if (scene.mood === 'grimy') ctx.filter = 'grayscale(60%)'
-    ctx.drawImage(scene.image, x, y, SPRITE_W, SPRITE_H)
+    // 정사각 유지 + 하단(바닥) 정렬. 호출부(eat 스쿼시·좌우 반전)도 이 함수를 거치므로
+    // 변환 좌표계 안에서도 같은 정사각 기준이 그대로 적용된다.
+    ctx.drawImage(
+      scene.image,
+      x + (SPRITE_W - SPRITE_IMAGE_SIZE) / 2,
+      y + SPRITE_H - SPRITE_IMAGE_SIZE,
+      SPRITE_IMAGE_SIZE,
+      SPRITE_IMAGE_SIZE,
+    )
     ctx.filter = 'none'
     return
   }

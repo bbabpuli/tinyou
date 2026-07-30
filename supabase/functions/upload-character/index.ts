@@ -2,6 +2,8 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
 const MAX_UPLOADS = 4 // 확정(업로드) 한도 — 로컬 미리보기는 무제한
 const MAX_BYTES = 32 * 1024
+const MAX_NAME_LEN = 20 // 클라이언트 maxLength와 동일 — 서버가 최종 권위
+const MAX_SEED_BYTES = 4 * 1024 // avatar_seed JSON 크기 캡
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 const UNIQUE_VIOLATION = '23505'
 
@@ -106,14 +108,32 @@ Deno.serve(async (req) => {
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return json(401, { error: 'UNAUTHORIZED' })
 
-  let payload: { imageBase64?: string; name?: string }
+  type Payload = { imageBase64?: string; name?: string; avatarSeed?: unknown }
+  let payload: Payload
   try {
-    payload = (await req.json()) as { imageBase64?: string; name?: string }
+    payload = (await req.json()) as Payload
   } catch {
     return json(400, { error: 'BAD_REQUEST' })
   }
-  const { imageBase64, name } = payload
+  const { imageBase64, name, avatarSeed } = payload
   if (!imageBase64 || !name?.trim()) return json(400, { error: 'BAD_REQUEST' })
+  if (name.trim().length > MAX_NAME_LEN) return json(400, { error: 'BAD_REQUEST' })
+
+  // avatarSeed는 선택 — 있으면 객체여야 하고 직렬화 크기를 제한한다 (Plan 3 꾸미기 재생성용)
+  let seed: unknown = null
+  if (avatarSeed !== undefined && avatarSeed !== null) {
+    if (typeof avatarSeed !== 'object' || Array.isArray(avatarSeed)) {
+      return json(400, { error: 'BAD_REQUEST' })
+    }
+    let serialized: string
+    try {
+      serialized = JSON.stringify(avatarSeed)
+    } catch {
+      return json(400, { error: 'BAD_REQUEST' })
+    }
+    if (serialized.length > MAX_SEED_BYTES) return json(400, { error: 'BAD_REQUEST' })
+    seed = avatarSeed
+  }
 
   let bytes: Uint8Array
   try {
@@ -154,7 +174,7 @@ Deno.serve(async (req) => {
   }
 
   const { error: updateError } = await admin.from('characters')
-    .update({ image_path: imagePath, name: name.trim() })
+    .update({ image_path: imagePath, name: name.trim(), avatar_seed: seed })
     .eq('id', characterId)
   if (updateError) {
     console.error('image_path update error', updateError)

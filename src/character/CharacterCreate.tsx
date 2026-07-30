@@ -39,7 +39,8 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
     }
     const base64 = canvas.toDataURL('image/png').split(',')[1]
     const { data, error } = await supabase.functions.invoke('upload-character', {
-      body: { imageBase64: base64, name },
+      // avatarSeed: 같은 답변·salt면 동일한 도트가 재생성된다 — Plan 3 꾸미기의 기반 데이터
+      body: { imageBase64: base64, name, avatarSeed: { answers, salt: attempt } },
     })
     setBusy(false)
     let code: string = data?.error ?? ''
@@ -100,7 +101,12 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
       <button disabled={busy} onClick={() => setAttempt((a) => a + 1)}>
         다시 뽑기
       </button>
-      <input placeholder="이름 지어주기" value={name} onChange={(e) => setName(e.target.value)} />
+      <input
+        placeholder="이름 지어주기"
+        value={name}
+        maxLength={20}
+        onChange={(e) => setName(e.target.value)}
+      />
       <button disabled={busy || !name.trim()} onClick={confirmName}>
         이 아이로 할래요 💕
       </button>

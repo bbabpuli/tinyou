@@ -33,6 +33,12 @@ test('minX에 닿으면 다시 오른쪽으로', () => {
   expect(w.x).toBeGreaterThanOrEqual(30)
 })
 
+test('minX >= maxX면 이동 없이 즉시 반환 (무한루프 가드)', () => {
+  const w = createWalker({ initialX: 100, minX: 150, maxX: 150, speedPxPerSec: 40 })
+  w.update(1000, true)
+  expect(w.x).toBe(100)
+})
+
 test('큰 dt에도 경계를 벗어나지 않음', () => {
   const w = createWalker(opts)
   w.update(60_000, true)

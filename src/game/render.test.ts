@@ -4,6 +4,7 @@ import {
   characterPos,
   renderScene,
   SPRITE_H,
+  SPRITE_IMAGE_SIZE,
   SPRITE_W,
   STAGE_H,
   STAGE_W,
@@ -23,11 +24,26 @@ const scene = (state: CharState, tMs: number, x = 100, facing: 1 | -1 = 1): Scen
 /** 좌표계 변환(save/restore/translate/scale)을 반영해 fillRect를 기록하는 가짜 컨텍스트 */
 function fakeCtx() {
   const calls: { x: number; y: number; w: number; h: number }[] = []
+  const images: { x: number; y: number; w: number; h: number }[] = []
   let t = { sx: 1, sy: 1, tx: 0, ty: 0 }
   const stack: (typeof t)[] = []
   return {
     calls,
+    images,
     fillStyle: '',
+    filter: 'none',
+    drawImage(_img: unknown, x: number, y: number, w: number, h: number) {
+      const x0 = t.tx + t.sx * x
+      const x1 = t.tx + t.sx * (x + w)
+      const y0 = t.ty + t.sy * y
+      const y1 = t.ty + t.sy * (y + h)
+      images.push({
+        x: Math.min(x0, x1),
+        y: Math.min(y0, y1),
+        w: Math.abs(x1 - x0),
+        h: Math.abs(y1 - y0),
+      })
+    },
     save() {
       stack.push({ ...t })
     },
@@ -56,6 +72,7 @@ function fakeCtx() {
     },
   } as unknown as CanvasRenderingContext2D & {
     calls: { x: number; y: number; w: number; h: number }[]
+    images: { x: number; y: number; w: number; h: number }[]
   }
 }
 
@@ -133,6 +150,19 @@ test('sad는 눈물 픽셀을 하나 더 그린다', () => {
   const ctxIdle = fakeCtx()
   renderScene(ctxIdle, scene('idle', 0))
   expect(ctxSad.calls.length).toBe(ctxIdle.calls.length + 1)
+})
+
+test('생성 이미지는 정사각(64×64)으로 바닥 정렬해 그린다 (세로 눌림 왜곡 없음)', () => {
+  const ctx = fakeCtx()
+  const s: Scene = { ...scene('idle', 0, 100), image: {} as HTMLImageElement }
+  renderScene(ctx, s)
+  expect(ctx.images).toHaveLength(1)
+  const img = ctx.images[0]
+  expect(img.w).toBe(SPRITE_IMAGE_SIZE)
+  expect(img.h).toBe(SPRITE_IMAGE_SIZE)
+  expect(img.w).toBe(img.h) // 정사각 — SPRITE_W×SPRITE_H로 늘리지 않는다
+  expect(img.y + img.h).toBe(FLOOR_Y) // 하단(바닥) 정렬
+  expect(img.x + img.w / 2).toBe(100 + SPRITE_W / 2) // 스프라이트 박스 중앙 정렬
 })
 
 test('eat은 squash 변환을 쓰지만 스프라이트 중심은 유지된다', () => {
