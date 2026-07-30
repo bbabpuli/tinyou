@@ -18,8 +18,18 @@ export function CharacterCreate({ onDone }: { onDone: () => void }) {
       body: { answers },
     })
     setBusy(false)
-    if (error || data?.error) {
-      const code = data?.error ?? error?.message ?? ''
+    let code: string = data?.error ?? ''
+    if (error && !code) {
+      const ctx = (error as { context?: Response }).context
+      if (ctx) {
+        try {
+          code = ((await ctx.json()) as { error?: string }).error ?? ''
+        } catch {
+          // 본문이 JSON이 아니면 일반 실패로 처리
+        }
+      }
+    }
+    if (error || code) {
       setError(
         code === 'GENERATION_LIMIT' ? '재생성 횟수를 모두 썼어요 🥲'
         : code === 'PARTNER_NOT_JOINED' ? '연인이 아직 방에 들어오지 않았어요'
@@ -34,11 +44,21 @@ export function CharacterCreate({ onDone }: { onDone: () => void }) {
 
   const confirmName = async () => {
     setBusy(true)
-    const { data: session } = await supabase.auth.getUser()
-    await supabase
+    const { data: userData } = await supabase.auth.getUser()
+    if (!userData.user) {
+      setBusy(false)
+      setError('로그인이 만료됐어요. 새로고침 후 다시 시도해주세요')
+      return
+    }
+    const { error: updateError } = await supabase
       .from('characters')
       .update({ name })
-      .eq('owner_user_id', session.user!.id)
+      .eq('owner_user_id', userData.user.id)
+    if (updateError) {
+      setBusy(false)
+      setError('이름 저장에 실패했어요. 다시 시도해주세요')
+      return
+    }
     setBusy(false)
     onDone()
   }

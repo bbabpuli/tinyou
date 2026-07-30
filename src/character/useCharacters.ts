@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export interface CharacterRow {
@@ -28,20 +28,39 @@ export function useCharacters(coupleId: string | undefined, myUserId: string | u
   const [mine, setMine] = useState<CharacterRow | null>(null)
   const [partners, setPartners] = useState<CharacterRow | null>(null)
   const [loading, setLoading] = useState(true)
+  const latestKeyRef = useRef(`${coupleId}:${myUserId}`)
 
   const refresh = useCallback(() => {
     if (!coupleId || !myUserId) return
+    const capturedKey = `${coupleId}:${myUserId}`
     setLoading(true)
     supabase
       .from('characters')
       .select('id, owner_user_id, name, image_path, regen_count')
       .eq('couple_id', coupleId)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        // Guard against stale responses from prior coupleId/myUserId
+        if (capturedKey !== latestKeyRef.current) {
+          return
+        }
+
+        // Handle errors: keep previous state, log, and clear loading
+        if (error) {
+          console.warn('Failed to fetch characters:', error.message)
+          setLoading(false)
+          return
+        }
+
         const rows = (data ?? []).map(toRow)
         setMine(rows.find((r) => r.ownerUserId === myUserId) ?? null)
         setPartners(rows.find((r) => r.ownerUserId !== myUserId) ?? null)
         setLoading(false)
       })
+  }, [coupleId, myUserId])
+
+  // Update ref whenever coupleId or myUserId changes to guard against stale responses
+  useEffect(() => {
+    latestKeyRef.current = `${coupleId}:${myUserId}`
   }, [coupleId, myUserId])
 
   useEffect(refresh, [refresh])
