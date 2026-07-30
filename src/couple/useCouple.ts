@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export interface CoupleInfo {
@@ -10,15 +10,29 @@ export interface CoupleInfo {
 export function useCouple(userId: string | undefined) {
   const [couple, setCouple] = useState<CoupleInfo | null>(null)
   const [loading, setLoading] = useState(true)
+  const latestUserIdRef = useRef(userId)
 
   const refresh = useCallback(() => {
     if (!userId) return
+    const capturedUserId = userId
     setLoading(true)
     supabase
       .from('profiles')
       .select('user_id, nickname, couple_id')
       .not('couple_id', 'is', null)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        // Guard against stale responses from prior userId
+        if (capturedUserId !== latestUserIdRef.current) {
+          return
+        }
+
+        // Handle errors: keep previous state, log, and clear loading
+        if (error) {
+          console.warn('Failed to fetch couple info:', error.message)
+          setLoading(false)
+          return
+        }
+
         const me = data?.find((p) => p.user_id === userId)
         if (!me?.couple_id) {
           setCouple(null)
@@ -32,6 +46,11 @@ export function useCouple(userId: string | undefined) {
         }
         setLoading(false)
       })
+  }, [userId])
+
+  // Update ref whenever userId changes to guard against stale responses
+  useEffect(() => {
+    latestUserIdRef.current = userId
   }, [userId])
 
   useEffect(refresh, [refresh])
