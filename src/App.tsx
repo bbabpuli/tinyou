@@ -9,6 +9,7 @@ import { WaitingPartner } from './couple/WaitingPartner'
 import { Inbox } from './messages/Inbox'
 import { SendNote } from './messages/SendNote'
 import { useMessages } from './messages/useMessages'
+import { useCoupleChannel } from './realtime/useCoupleChannel'
 import { useGame } from './state/store'
 import { AvatarGallery } from './ui/AvatarGallery'
 import { CareButtons } from './ui/CareButtons'
@@ -31,11 +32,23 @@ function MainApp() {
   const loadCare = useGame((s) => s.loadCare)
   const mineId = mine?.id
   const [redecorating, setRedecorating] = useState(false)
-  const { unread, inbox, send, markRead } = useMessages(couple?.coupleId, userId)
+  const { unread, inbox, send, markRead, refresh: refreshMessages } = useMessages(
+    couple?.coupleId,
+    userId,
+  )
 
   useEffect(() => {
     if (mineId && userId) void loadCare(mineId, userId)
   }, [mineId, userId, loadCare])
+
+  // 파트너의 돌봄/쪽지/합류를 실시간으로 반영 — 구독이 실패해도 각 refresh는 기존 fetch 그대로라 무해하다
+  useCoupleChannel(couple?.coupleId, {
+    onMessage: refreshMessages,
+    onCare: () => {
+      if (mineId && userId) void loadCare(mineId, userId)
+    },
+    onProfile: refreshCouple,
+  })
 
   let body
   if (authLoading || (userId && (coupleLoading || charLoading))) body = <p>불러오는 중…</p>

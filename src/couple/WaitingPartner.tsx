@@ -17,7 +17,7 @@ export function WaitingPartner({ inviteCode, onRefresh }: WaitingPartnerProps) {
         <p style={{ color: 'crimson' }}>초대 코드를 불러오지 못했어요</p>
       )}
       <p style={{ fontSize: 13, opacity: 0.7 }}>코드는 24시간 유효해요</p>
-      <button onClick={onRefresh}>들어왔는지 확인 🔄</button>
+      <button onClick={onRefresh}>들어왔는지 확인 🔄 (자동으로도 넘어가요)</button>
     </div>
   )
 }
