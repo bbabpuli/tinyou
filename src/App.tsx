@@ -15,6 +15,7 @@ import { TraceToast } from './traces/TraceToast'
 import { AvatarGallery } from './ui/AvatarGallery'
 import { CareButtons } from './ui/CareButtons'
 import { Hud } from './ui/Hud'
+import { SettingsCorner } from './ui/SettingsCorner'
 import { Stage } from './ui/Stage'
 
 export function App() {
@@ -87,10 +88,13 @@ function MainApp() {
   )
 
   return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: 16, display: 'grid', gap: 12 }}>
-      <h1 style={{ fontFamily: 'monospace', textAlign: 'center' }}>Tinyou</h1>
-      {body}
-    </main>
+    <>
+      {session && <SettingsCorner />}
+      <main style={{ maxWidth: 480, margin: '0 auto', padding: 16, display: 'grid', gap: 12 }}>
+        <h1 style={{ fontFamily: 'monospace', textAlign: 'center' }}>Tinyou</h1>
+        {body}
+      </main>
+    </>
   )
 }
 

@@ -18,6 +18,7 @@ interface GameStore {
   loadCare(characterId: string, userId: string): Promise<void>
   care(type: CareType, now?: Date): Promise<boolean>
   consumePending(): CareInput | undefined
+  reset(): void
 }
 
 async function supabaseInsertCare(p: {
@@ -87,5 +88,13 @@ export const useGame = create<GameStore>()((set, get) => ({
     const [head, ...rest] = get().pending
     if (head !== undefined) set({ pending: rest })
     return head
+  },
+  reset() {
+    set({
+      userId: null,
+      characterId: null,
+      careLog: [],
+      pending: [],
+    })
   },
 }))
