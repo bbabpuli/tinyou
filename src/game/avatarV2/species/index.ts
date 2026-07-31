@@ -27,4 +27,4 @@ export const SPECIES: Record<SpeciesKey, Species> = {
   duck,
   seal,
 }
-export const REGISTERED_SPECIES = Object.values(SPECIES) as Species[]
+export const REGISTERED_SPECIES = Object.values(SPECIES)
