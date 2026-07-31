@@ -16,6 +16,14 @@ const FLOOR_Y = 200
  */
 export const SPRITE_IMAGE_SIZE = 64
 
+/** deliver 상태에서 머리 위에 스탬프로 찍는 6×5 편지봉투(테두리 O·몸 W·접힘선 O) */
+const ENVELOPE_MAP: string[] = ['OOOOOO', 'OOWWOO', 'OWOOWO', 'OWWWWO', 'OOOOOO']
+const ENVELOPE_PALETTE: Record<string, string> = {
+  O: '#8b5e34', // 테두리·접힘선
+  W: '#fff8e7', // 봉투 몸
+}
+const ENVELOPE_GAP = 6 // 머리 꼭대기와 봉투 사이 여백(px)
+
 export interface Scene {
   state: CharState
   mood: Happiness
@@ -26,11 +34,19 @@ export interface Scene {
   facing: 1 | -1
   /** AI 생성 캐릭터 이미지 — 있으면 BLOB_MAP 대신 이걸 드로우한다 */
   image?: HTMLImageElement
+  /** 취침 장면 — 배경을 어둡게 오버레이하고 분신 위에 이불을 덮은 정적 포즈로 그린다 */
+  sleeping?: boolean
 }
+
+/** 취침 오버레이 색(반투명 남보라) — 배경을 밤 분위기로 어둡게 덮는다 */
+const SLEEP_OVERLAY = 'rgba(58, 52, 82, 0.55)'
+/** 이불 색 — 도트 팔레트의 S(하늘/차분한 톤) 계열 */
+const BLANKET_COLOR = '#8fb3d9'
 
 /** 캐릭터 기준점(스프라이트 좌상단) 좌표 + 방향 — 파티클 스폰 위치 계산에도 사용 */
 export function characterPos(scene: Scene): { x: number; y: number; facing: 1 | -1 } {
   const baseY = FLOOR_Y - SPRITE_H
+  if (scene.sleeping) return { x: scene.x, y: baseY, facing: 1 } // 정적 포즈 — bob 없이 고정
   switch (scene.state) {
     case 'walk':
       return { x: scene.x, y: baseY + bobY(scene.tMs, 1, 400), facing: scene.facing }
@@ -70,6 +86,11 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
   ctx.fillStyle = '#e8d5c4'
   ctx.fillRect(0, FLOOR_Y, STAGE_W, STAGE_H - FLOOR_Y)
 
+  if (scene.sleeping) {
+    ctx.fillStyle = SLEEP_OVERLAY
+    ctx.fillRect(0, 0, STAGE_W, STAGE_H)
+  }
+
   const { x, y, facing } = characterPos(scene)
 
   if (scene.state === 'eat') {
@@ -92,8 +113,28 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
     drawCharacter(ctx, scene, x, y)
   }
 
+  if (scene.sleeping) {
+    // 이불(S 색 사각) — 분신 하반신을 덮는 정적 포즈
+    const blanketH = SPRITE_H * 0.4
+    ctx.fillStyle = BLANKET_COLOR
+    ctx.fillRect(x, y + SPRITE_H - blanketH, SPRITE_W, blanketH)
+    // 자는 중에도 밤에 온 쪽지의 시각 단서는 유지 — 봉투 스탬프는 이불 위에 그대로 찍는다
+    if (scene.state === 'deliver') {
+      const envW = ENVELOPE_MAP[0].length * SCALE
+      const envH = ENVELOPE_MAP.length * SCALE
+      drawPixelMap(ctx, ENVELOPE_MAP, ENVELOPE_PALETTE, x + (SPRITE_W - envW) / 2, y - envH - ENVELOPE_GAP, SCALE)
+    }
+    return
+  }
+
   if (scene.state === 'sad') {
     ctx.fillStyle = '#7ec8e3' // 눈물 한 방울
     ctx.fillRect(x + 2 * SCALE, y + 4 * SCALE, SCALE, SCALE * 2)
+  }
+
+  if (scene.state === 'deliver') {
+    const envW = ENVELOPE_MAP[0].length * SCALE
+    const envH = ENVELOPE_MAP.length * SCALE
+    drawPixelMap(ctx, ENVELOPE_MAP, ENVELOPE_PALETTE, x + (SPRITE_W - envW) / 2, y - envH - ENVELOPE_GAP, SCALE)
   }
 }

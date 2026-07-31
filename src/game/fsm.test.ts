@@ -128,3 +128,44 @@ test('한 update에서 다단 전이해도 phaseMs는 마지막 상태 기준', 
   expect(['idle', 'walk']).toContain(fsm.state)
   expect(fsm.phaseMs).toBe(300)
 })
+
+test('startDeliver: 평상시 즉시 deliver 진입, 시간 경과에도 유지', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.startDeliver()
+  fsm.update(16)
+  expect(fsm.state).toBe('deliver')
+  fsm.update(10000)
+  expect(fsm.state).toBe('deliver')
+})
+
+test('endDeliver → happy → 평상 복귀', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.startDeliver()
+  fsm.update(16)
+  fsm.endDeliver()
+  fsm.update(16)
+  expect(fsm.state).toBe('happy')
+  fsm.update(1500)
+  fsm.update(16)
+  expect(['idle', 'walk']).toContain(fsm.state)
+})
+
+test('액션(eat) 중 startDeliver는 액션 끝난 뒤 진입', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.enqueue('feed')
+  fsm.update(16)
+  fsm.startDeliver()
+  expect(fsm.state).toBe('eat')
+  fsm.update(2000) // eat 끝 → happy
+  fsm.update(1500) // happy 끝 → deliver 대기 있으면 deliver
+  fsm.update(16)
+  expect(fsm.state).toBe('deliver')
+})
+
+test('진입 전 endDeliver는 pending을 취소', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.startDeliver()
+  fsm.endDeliver() // 아직 update 전 — 취소
+  fsm.update(16)
+  expect(fsm.state).not.toBe('deliver')
+})

@@ -18,6 +18,7 @@ interface GameStore {
   loadCare(characterId: string, userId: string): Promise<void>
   care(type: CareType, now?: Date): Promise<boolean>
   consumePending(): CareInput | undefined
+  reset(): void
 }
 
 async function supabaseInsertCare(p: {
@@ -65,12 +66,19 @@ export const useGame = create<GameStore>()((set, get) => ({
     if (!characterId || !userId) return false
     if (!canCareToday(careLog, userId, type, now)) return false
     const action: CareAction = { userId, type, createdAt: now }
-    set((s) => ({ careLog: [...s.careLog, action], pending: [...s.pending, type] }))
+    // goodnight은 FSM 액션 애니메이션(eat/petted)이 없다 — 취침 장면 재판정으로 반영되므로 큐에 넣지 않는다.
+    const isCareInput = (t: CareType): t is CareInput => t === 'feed' || t === 'pet'
+    set((s) => ({
+      careLog: [...s.careLog, action],
+      pending: isCareInput(type) ? [...s.pending, type] : s.pending,
+    }))
     const result = await insertCare({ characterId, userId, type })
     if (!result.ok) {
       set((s) => ({
         careLog: s.careLog.filter((a) => a !== action),
-        pending: s.pending.filter((p, i) => !(p === type && i === s.pending.lastIndexOf(type))),
+        pending: isCareInput(type)
+          ? s.pending.filter((p, i) => !(p === type && i === s.pending.lastIndexOf(type)))
+          : s.pending,
       }))
       return false
     }
@@ -80,5 +88,13 @@ export const useGame = create<GameStore>()((set, get) => ({
     const [head, ...rest] = get().pending
     if (head !== undefined) set({ pending: rest })
     return head
+  },
+  reset() {
+    set({
+      userId: null,
+      characterId: null,
+      careLog: [],
+      pending: [],
+    })
   },
 }))

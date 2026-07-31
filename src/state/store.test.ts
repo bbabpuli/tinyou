@@ -41,3 +41,15 @@ test('consumePending은 FIFO로 하나씩 소비', async () => {
   expect(useGame.getState().consumePending()).toBe('pet')
   expect(useGame.getState().consumePending()).toBeUndefined()
 })
+
+test('reset은 모든 필드를 초기값으로 되돌린다', async () => {
+  const insert = vi.fn().mockResolvedValue({ ok: true })
+  useGame.setState({ insertCare: insert })
+  await useGame.getState().care('feed', NOW)
+  await useGame.getState().care('pet', NOW)
+  useGame.getState().reset()
+  expect(useGame.getState().userId).toBe(null)
+  expect(useGame.getState().characterId).toBe(null)
+  expect(useGame.getState().careLog).toEqual([])
+  expect(useGame.getState().pending).toEqual([])
+})

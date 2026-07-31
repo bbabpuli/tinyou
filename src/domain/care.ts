@@ -1,6 +1,6 @@
 import { dateKeySeoul } from './dateKey'
 
-export type CareType = 'feed' | 'pet'
+export type CareType = 'feed' | 'pet' | 'goodnight'
 
 export interface CareAction {
   userId: string

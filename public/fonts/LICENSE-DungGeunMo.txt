@@ -1,0 +1,61 @@
+둥근모꼴+Fixedsys (DungGeunMo) 폰트 라이선스 사본
+=================================================
+
+폰트명: 둥근모꼴+Fixedsys (DungGeunMo)
+원저작자:
+  - 둥근모꼴(한글): 김중태(金重泰, ITH 문화원)
+  - Fixedsys Excelsior(비한글): Darien Gavin Valentine
+재조합/배포: orioncactus (길형진)
+
+공식 배포처(원저작자 블로그 게시글):
+  https://cactus.tistory.com/193
+
+배포 미러(Noonnu, 상업용 무료 한글 폰트 모음):
+  https://noonnu.cc/en/font_page/250
+
+실제 파일 다운로드 출처(GitHub, Noonnu가 공식 링크하는 CDN 원본 저장소):
+  https://github.com/projectnoonnu/noonfonts_six
+  raw: https://raw.githubusercontent.com/projectnoonnu/noonfonts_six/master/DungGeunMo.woff
+  (본 저장소의 DungGeunMo.woff2는 위 원본 .woff 파일을 fontTools(WOFF2 flavor)로
+   무손실 컨테이너 변환한 것이며, 글리프 데이터는 원본과 동일합니다.)
+
+---
+
+라이선스 원문 (저작자 블로그, cactus.tistory.com/193, 한국어 원문):
+
+"원본과 동일한 퍼블릭 도메인으로 재배포, 수정, 영리 목적 사용 등 걱정 없이
+자유롭게 쓰면 됩니다."
+
+(번역: "동일하게 원본과 같은 퍼블릭 도메인 라이선스이므로, 재배포·수정·상업적
+사용 등을 걱정 없이 자유롭게 해도 됩니다.")
+
+---
+
+Noonnu(눈누) 폰트 페이지에 명시된 라이선스 요약 (noonnu.cc/en/font_page/250):
+
+License Type: Public Domain
+
+"Public domain fonts are free to use for any purpose, including
+redistribution, modification, and commercial use. No need to worry
+about copyright."
+
+허용 항목:
+  - 상업적 이용 (제품 패키지, BI/CI, 브랜딩)
+  - 인쇄물 (브로슈어, 포스터, 도서, 잡지)
+  - 웹/디지털 (웹사이트, 이메일, 광고, 전자책) — 웹폰트 임베드(@font-face) 포함
+  - 영상 (유튜브, 광고, 영화, 뮤직비디오)
+  - 수정 및 재배포 허용
+
+금지 항목:
+  - 폰트 파일 자체를 유상 판매하는 행위
+
+---
+
+결론: 본 프로젝트는 위 공식 배포처(원저작자 블로그) 및 미러(Noonnu)에 명시된
+퍼블릭 도메인 라이선스에 근거하여, DungGeunMo.woff2 파일을 public/fonts/에
+셀프호스팅하고 @font-face로 웹폰트 임베드합니다. 재배포·수정·웹 임베드가
+명시적으로 허용되어 있으므로 본 리포지토리에 폰트 바이너리를 커밋합니다.
+(단, 폰트 파일 자체의 유상 판매는 금지되어 있으며 본 프로젝트는 이를
+판매하지 않습니다.)
+
+조회일: 2026-07-31
