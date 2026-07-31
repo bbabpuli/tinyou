@@ -55,7 +55,7 @@ export function Stage({ character, unread, markRead }: StageProps) {
     unreadRef.current = unread
   }, [unread])
 
-  // 자동 오픈: 배달 상태(봉투 든 채 대기)에 들어오면 탭 없이 말풍선을 연다.
+  // 자동 오픈: 배달 상태에 들어오면 탭 없이 말풍선을 연다 (봉투 그림은 없음 — 말풍선이 유일한 단서).
   // fsm은 ref라 React 렌더를 일으키지 않으므로 짧은 폴링으로 상태를 살핀다.
   useEffect(() => {
     if (bubbleMsg) return
