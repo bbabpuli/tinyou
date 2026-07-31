@@ -55,6 +55,19 @@ export function Stage({ character, unread, markRead }: StageProps) {
     unreadRef.current = unread
   }, [unread])
 
+  // 자동 오픈: 배달 상태(봉투 든 채 대기)에 들어오면 탭 없이 말풍선을 연다.
+  // fsm은 ref라 React 렌더를 일으키지 않으므로 짧은 폴링으로 상태를 살핀다.
+  useEffect(() => {
+    if (bubbleMsg) return
+    const timer = setInterval(() => {
+      const fsm = fsmRef.current
+      if (!fsm || fsm.state !== 'deliver') return
+      const next = pickNextUnread(unreadRef.current, shownIdsRef.current)
+      if (next) setBubbleMsg(next)
+    }, 400)
+    return () => clearInterval(timer)
+  }, [bubbleMsg])
+
   // 말풍선 자동 회전: 열려 있는 동안 4초마다 다음 미읽음 쪽지로 넘어간다.
   // 넘어간 쪽지는 읽음 처리(화면에 보여줬으니 읽은 것). 마지막 쪽지는 클릭까지 유지.
   // bubbleMsg가 바뀔 때마다 타이머가 리셋되므로 각 쪽지가 온전히 4초씩 보인다.
