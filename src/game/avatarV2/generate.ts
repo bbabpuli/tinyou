@@ -1,5 +1,5 @@
 import { composeAvatar } from './compose'
-import { matchPalette, matchSpecies, SPECIES_KEYS } from './matching'
+import { matchPalette, matchSpecies, SPECIES_KEYS, type SpeciesKey } from './matching'
 import { PALETTES, type PaletteKey } from './palettes'
 import { SPECIES } from './species'
 
@@ -12,17 +12,32 @@ export function hashSeed(text: string): number {
   return h >>> 0
 }
 
+// LLM(map-avatar)이 고른 종·팔레트. 유효하지 않은 값은 필드 단위로 무시된다.
+export type AvatarMapping = { species?: string; palette?: string }
+
 export function generateAvatar(
   answers: string[],
   salt: number,
+  mapping?: AvatarMapping | null,
 ): { map: string[]; palette: Record<string, string> } {
   const joined = answers.map((a) => a.trim()).join('')
   const baseSeed = hashSeed(joined) // 종·팔레트 폴백용 — salt 무관
   const variantSeed = hashSeed(joined + ':' + String(salt)) // 변형용 — salt 반영
 
   const paletteKeys = Object.keys(PALETTES) as PaletteKey[]
-  const speciesKey = matchSpecies(answers) ?? SPECIES_KEYS[baseSeed % SPECIES_KEYS.length]
-  const paletteKey = matchPalette(answers) ?? paletteKeys[(baseSeed >>> 8) % paletteKeys.length]
+  const mappedSpecies =
+    mapping?.species && (SPECIES_KEYS as readonly string[]).includes(mapping.species)
+      ? (mapping.species as SpeciesKey)
+      : null
+  const mappedPalette =
+    mapping?.palette && paletteKeys.includes(mapping.palette as PaletteKey)
+      ? (mapping.palette as PaletteKey)
+      : null
+
+  const speciesKey =
+    mappedSpecies ?? matchSpecies(answers) ?? SPECIES_KEYS[baseSeed % SPECIES_KEYS.length]
+  const paletteKey =
+    mappedPalette ?? matchPalette(answers) ?? paletteKeys[(baseSeed >>> 8) % paletteKeys.length]
 
   return composeAvatar(SPECIES[speciesKey], paletteKey, {
     eyes: (variantSeed >>> 0) & 0xff,
