@@ -34,11 +34,19 @@ export interface Scene {
   facing: 1 | -1
   /** AI 생성 캐릭터 이미지 — 있으면 BLOB_MAP 대신 이걸 드로우한다 */
   image?: HTMLImageElement
+  /** 취침 장면 — 배경을 어둡게 오버레이하고 분신 위에 이불을 덮은 정적 포즈로 그린다 */
+  sleeping?: boolean
 }
+
+/** 취침 오버레이 색(반투명 남보라) — 배경을 밤 분위기로 어둡게 덮는다 */
+const SLEEP_OVERLAY = 'rgba(58, 52, 82, 0.55)'
+/** 이불 색 — 도트 팔레트의 S(하늘/차분한 톤) 계열 */
+const BLANKET_COLOR = '#8fb3d9'
 
 /** 캐릭터 기준점(스프라이트 좌상단) 좌표 + 방향 — 파티클 스폰 위치 계산에도 사용 */
 export function characterPos(scene: Scene): { x: number; y: number; facing: 1 | -1 } {
   const baseY = FLOOR_Y - SPRITE_H
+  if (scene.sleeping) return { x: scene.x, y: baseY, facing: 1 } // 정적 포즈 — bob 없이 고정
   switch (scene.state) {
     case 'walk':
       return { x: scene.x, y: baseY + bobY(scene.tMs, 1, 400), facing: scene.facing }
@@ -78,6 +86,11 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
   ctx.fillStyle = '#e8d5c4'
   ctx.fillRect(0, FLOOR_Y, STAGE_W, STAGE_H - FLOOR_Y)
 
+  if (scene.sleeping) {
+    ctx.fillStyle = SLEEP_OVERLAY
+    ctx.fillRect(0, 0, STAGE_W, STAGE_H)
+  }
+
   const { x, y, facing } = characterPos(scene)
 
   if (scene.state === 'eat') {
@@ -98,6 +111,14 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
     ctx.restore()
   } else {
     drawCharacter(ctx, scene, x, y)
+  }
+
+  if (scene.sleeping) {
+    // 이불(S 색 사각) — 분신 하반신을 덮는 정적 포즈
+    const blanketH = SPRITE_H * 0.4
+    ctx.fillStyle = BLANKET_COLOR
+    ctx.fillRect(x, y + SPRITE_H - blanketH, SPRITE_W, blanketH)
+    return
   }
 
   if (scene.state === 'sad') {

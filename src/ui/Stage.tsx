@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { CharacterRow } from '../character/useCharacters'
+import type { CareAction } from '../domain/care'
+import { dateKeySeoul } from '../domain/dateKey'
 import { happinessFrom, type Happiness } from '../domain/happiness'
 import { createCharacterFsm, type CharacterFsm } from '../game/fsm'
+import { goodnightDateKeys, isSleepScene } from '../game/night'
 import { startLoop } from '../game/loop'
 import { pickNextUnread, type Message } from '../messages/useMessages'
 import { ParticleSystem } from '../game/particles'
@@ -12,6 +15,12 @@ import { selectLastCaredAt, useGame } from '../state/store'
 import { SpeechBubble } from './SpeechBubble'
 
 const MOOD_REFRESH_MS = 1000
+
+/** careLog에 "오늘(취침 판정 기준일)" 굿나잇 기록이 있는지 — 파트너/본인 구분 없이 캐릭터 전체 기록을 본다 */
+function hasGoodnightRecorded(careLog: CareAction[], now: Date): boolean {
+  const keys = goodnightDateKeys(now)
+  return careLog.some((a) => a.type === 'goodnight' && keys.includes(dateKeySeoul(a.createdAt)))
+}
 
 interface StageProps {
   character: CharacterRow
@@ -72,6 +81,7 @@ export function Stage({ character, unread, markRead }: StageProps) {
     let lastCaredAt: Date | null = null
     let moodElapsedMs = Infinity // 첫 프레임에 즉시 계산
     let mood: Happiness = 'ok'
+    let sleeping = false
 
     const stop = startLoop((dt) => {
       const store = useGame.getState()
@@ -80,15 +90,18 @@ export function Stage({ character, unread, markRead }: StageProps) {
       if (store.careLog !== lastSeenLog) {
         lastSeenLog = store.careLog
         lastCaredAt = selectLastCaredAt(store)
-        moodElapsedMs = Infinity // 돌봄 직후에는 기분을 즉시 반영
+        moodElapsedMs = Infinity // 돌봄 직후에는 기분·취침 여부를 즉시 반영(굿나잇 인사 후 바로 잠든 모습)
       }
       moodElapsedMs += dt
       if (moodElapsedMs >= MOOD_REFRESH_MS) {
         moodElapsedMs = 0
-        mood = happinessFrom(lastCaredAt, new Date())
+        const now = new Date()
+        mood = happinessFrom(lastCaredAt, now)
+        sleeping = isSleepScene(now, hasGoodnightRecorded(store.careLog, now))
       }
 
       fsm.setMood(mood)
+      fsm.setSleeping(sleeping)
       if (input) fsm.enqueue(input)
       // 미읽음 쪽지가 있으면 배달 연출 진입을 매 프레임 요청한다 — 이미 배달 중/액션 중이면 fsm 내부에서 no-op이라 안전
       if (unreadRef.current.length > 0) fsm.startDeliver()
@@ -101,6 +114,7 @@ export function Stage({ character, unread, markRead }: StageProps) {
         x: walker.x,
         facing: walker.facing,
         image,
+        sleeping,
       }
       posRef.current = characterPos(scene)
       if (input) {

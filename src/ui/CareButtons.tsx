@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
 import { canCareToday } from '../domain/care'
+import { isGoodnightWindow } from '../game/night'
 import { useTick } from '../hooks/useTick'
 import { useGame } from '../state/store'
 
 export function CareButtons() {
-  useTick(60_000) // 자정(Asia/Seoul)이 지나면 클릭 없이도 버튼이 다시 활성화돼야 한다
+  useTick(60_000) // 자정(Asia/Seoul)이 지나면·굿나잇 창이 열리고 닫히면 클릭 없이도 버튼이 다시 반영돼야 한다
   const care = useGame((s) => s.care)
   const careLog = useGame((s) => s.careLog)
   const userId = useGame((s) => s.userId)
@@ -17,10 +18,18 @@ export function CareButtons() {
     () => !!userId && canCareToday(careLog, userId, 'pet', now),
     [careLog, userId, now],
   )
+  const showGoodnight = isGoodnightWindow(now)
+  const canGoodnight = useMemo(
+    () => !!userId && canCareToday(careLog, userId, 'goodnight', now),
+    [careLog, userId, now],
+  )
   return (
     <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
       <button disabled={!canFeed} onClick={() => care('feed')}>🍙 밥 주기</button>
       <button disabled={!canPet} onClick={() => care('pet')}>🫳 쓰다듬기</button>
+      {showGoodnight && (
+        <button disabled={!canGoodnight} onClick={() => care('goodnight')}>🌙 굿나잇 인사</button>
+      )}
     </div>
   )
 }

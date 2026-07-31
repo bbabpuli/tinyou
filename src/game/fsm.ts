@@ -20,6 +20,8 @@ export interface CharacterFsm {
   readonly phaseMs: number
   enqueue(input: CareInput): void
   setMood(mood: Happiness): void
+  /** 취침 장면 진입/해제. sleeping이면 앰비언트가 idle에 고정되어 walk로 갈아타지 않는다. */
+  setSleeping(sleeping: boolean): void
   update(dtMs: number): void
   /** 편지 배달 연출 진입 요청. 평상시엔 즉시, 액션 중이면 액션(및 큐) 종료 후 자동 진입한다. */
   startDeliver(): void
@@ -30,6 +32,7 @@ export interface CharacterFsm {
 export function createCharacterFsm(rng: () => number = Math.random): CharacterFsm {
   let state: CharState = 'idle'
   let mood: Happiness = 'ok'
+  let sleeping = false
   let phaseMs = 0
   const queue: CareInput[] = []
   let deliverPending = false // 큐가 항상 pending deliver보다 우선
@@ -42,6 +45,7 @@ export function createCharacterFsm(rng: () => number = Math.random): CharacterFs
   let remainMs = ambientDurationMs('idle')
 
   function nextAmbient(): CharState {
+    if (sleeping) return 'idle' // 취침 중엔 배회하지 않는다 — idle 고정
     if (mood === 'sad' || mood === 'grimy') return 'sad'
     return state === 'walk' ? 'idle' : 'walk'
   }
@@ -58,6 +62,9 @@ export function createCharacterFsm(rng: () => number = Math.random): CharacterFs
     },
     setMood(m) {
       mood = m
+    },
+    setSleeping(s) {
+      sleeping = s
     },
     startDeliver() {
       if (delivering) return // 이미 배달 연출 중이면 무시(중복 pending으로 endDeliver 직후 재진입하는 것을 방지)

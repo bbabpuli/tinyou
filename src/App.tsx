@@ -11,6 +11,7 @@ import { SendNote } from './messages/SendNote'
 import { useMessages } from './messages/useMessages'
 import { useCoupleChannel } from './realtime/useCoupleChannel'
 import { useGame } from './state/store'
+import { TraceToast } from './traces/TraceToast'
 import { AvatarGallery } from './ui/AvatarGallery'
 import { CareButtons } from './ui/CareButtons'
 import { Hud } from './ui/Hud'
@@ -30,6 +31,7 @@ function MainApp() {
     userId,
   )
   const loadCare = useGame((s) => s.loadCare)
+  const careLog = useGame((s) => s.careLog)
   const mineId = mine?.id
   const [redecorating, setRedecorating] = useState(false)
   const { unread, inbox, send, markRead, refresh: refreshMessages } = useMessages(
@@ -71,6 +73,11 @@ function MainApp() {
   else body = (
     <>
       {mine.regenCount === 0 && <RedecorateBanner onClick={() => setRedecorating(true)} />}
+      <TraceToast
+        careLog={careLog}
+        partnerId={couple.partner.userId}
+        partnerNickname={couple.partner.nickname}
+      />
       <Stage character={mine} unread={unread} markRead={markRead} />
       <Hud character={mine} />
       <CareButtons />
