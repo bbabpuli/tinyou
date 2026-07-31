@@ -68,12 +68,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS })
   if (req.method !== 'POST') return json(405, { error: 'METHOD_NOT_ALLOWED' })
 
-  const userClient = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } },
-  )
-  const { data: { user } } = await userClient.auth.getUser()
+  let user
+  try {
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } },
+    )
+    const { data } = await userClient.auth.getUser()
+    user = data.user
+  } catch {
+    return json(500, { error: 'INTERNAL_ERROR' })
+  }
   if (!user) return json(401, { error: 'UNAUTHORIZED' })
 
   let payload: { answers?: unknown }
