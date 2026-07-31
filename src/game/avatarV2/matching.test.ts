@@ -34,6 +34,12 @@ test('개구리 vs 개 최장 매칭', () => {
   expect(matchSpecies(['개구리 닮음'])).toBe('frog')
 })
 
+test('일상어 부분문자열 오탐 없음', () => {
+  expect(matchSpecies(['새로운 걸 좋아하는 강아지상'])).toBe('dog')
+  expect(matchSpecies(['개성 있는 사람'])).toBeNull()
+  expect(matchSpecies(['덕분에 웃게 돼'])).toBeNull()
+})
+
 test('한 답변 내 동률은 등장 위치 우선', () => {
   expect(matchSpecies(['강아지 반 고양이 반'])).toBe('dog')
   expect(matchSpecies(['고양이 반 강아지 반'])).toBe('cat')

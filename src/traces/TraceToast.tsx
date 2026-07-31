@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CareAction, CareType } from '../domain/care'
 import { supabase } from '../lib/supabase'
+import { withSubjectJosa } from './josa'
 import { summarizeTraces, type TraceSummary } from './summarize'
 
 const STORAGE_KEY = 'tinyou-last-trace-check'
@@ -65,7 +66,15 @@ export function TraceToast({ partnerCharacterId, partnerId, partnerNickname }: T
       const result = summarizeTraces(actions, partnerId, since)
       if (!result) return
       setSummary(result)
-      localStorage.setItem(STORAGE_KEY, new Date().toISOString())
+      // 체크포인트는 클라이언트 시각이 아니라 실제로 읽은 행의 max(created_at)(서버 시각)으로 둔다.
+      // 기기 시계가 서버보다 앞서 있으면 그 사이 들어온 흔적을 영영 건너뛰고, 뒤처져 있으면 같은
+      // 흔적을 계속 다시 보여주기 때문. 행이 없으면(위 early-return) 체크포인트는 그대로 둔다.
+      const latest = (data ?? []).reduce<string | null>(
+        (max, r) =>
+          max === null || Date.parse(r.created_at) > Date.parse(max) ? r.created_at : max,
+        null,
+      )
+      if (latest) localStorage.setItem(STORAGE_KEY, latest)
       timerRef.current = setTimeout(() => setSummary(null), VISIBLE_MS)
     })
 
@@ -90,7 +99,7 @@ export function TraceToast({ partnerCharacterId, partnerId, partnerNickname }: T
         cursor: 'pointer',
       }}
     >
-      {partnerNickname}가 {summary.text}
+      {withSubjectJosa(partnerNickname)} {summary.text}
     </div>
   )
 }

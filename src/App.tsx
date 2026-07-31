@@ -44,7 +44,7 @@ function MainApp() {
   }, [mineId, userId, loadCare])
 
   // 파트너의 돌봄/쪽지/합류를 실시간으로 반영 — 구독이 실패해도 각 refresh는 기존 fetch 그대로라 무해하다
-  useCoupleChannel(couple?.coupleId, {
+  useCoupleChannel(couple?.coupleId, userId, {
     onMessage: refreshMessages,
     onCare: () => {
       if (mineId && userId) void loadCare(mineId, userId)
@@ -52,8 +52,22 @@ function MainApp() {
     onProfile: refreshCouple,
   })
 
+  // 대기 화면은 Realtime에만 기대지 않는다: 구독이 실패하면 "연인이 들어오면 자동으로 넘어가요"
+  // 약속이 깨지므로, 파트너가 없는 동안만 5초 폴링으로 직접 확인한다. 파트너가 생기면 정리된다.
+  const waitingForPartner = Boolean(couple && !couple.partner)
+  useEffect(() => {
+    if (!waitingForPartner) return
+    const timer = setInterval(() => {
+      void refreshCouple()
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [waitingForPartner, refreshCouple])
+
   let body
-  if (authLoading || (userId && (coupleLoading || charLoading))) body = <p>불러오는 중…</p>
+  // 이미 보여줄 데이터가 있으면 재조회 중이어도 로딩 화면으로 되돌아가지 않는다 — 위 5초 폴링이
+  // 매번 coupleLoading을 켜므로, 그러지 않으면 대기 화면이 5초마다 깜빡인다.
+  if (authLoading || (userId && ((coupleLoading && !couple) || (charLoading && !mine))))
+    body = <p>불러오는 중…</p>
   else if (!session) body = <LoginScreen />
   else if (!couple) body = <CoupleSetup onDone={refreshCouple} />
   // 연인이 아직 합류하지 않았으면 캐릭터 생성(파트너 필요)을 막고 초대 코드를 계속 보여준다
@@ -63,12 +77,21 @@ function MainApp() {
   // 새 v2 아바타로 아직 단장하지 않은 기존 캐릭터(regenCount === 0)는 답변을 새로 받아 재생성한다
   else if (redecorating)
     body = (
-      <CharacterCreate
-        onDone={() => {
-          setRedecorating(false)
-          refreshChars()
-        }}
-      />
+      <>
+        {/* 단장은 되돌릴 수 없는 재생성이라 언제든 빠져나올 길을 열어둔다 */}
+        <button
+          onClick={() => setRedecorating(false)}
+          style={{ justifySelf: 'start', background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          나중에 할래요 ↩
+        </button>
+        <CharacterCreate
+          onDone={() => {
+            setRedecorating(false)
+            refreshChars()
+          }}
+        />
+      </>
     )
   else body = (
     <>

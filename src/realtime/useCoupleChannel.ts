@@ -21,9 +21,16 @@ export interface CoupleChannelHandlers {
  * 아니어도) 구독자의 RLS 정책을 그대로 적용해 행을 내려준다 — care_actions에 걸린 RLS가
  * "내 커플 소속 캐릭터의 기록만" 조회를 허용하므로, 필터를 생략해도 다른 커플의 이벤트는
  * RLS가 걸러 애초에 전달되지 않는다. 그래서 care_actions만 filter 없이 구독한다.
+ *
+ * 채널 토픽에 userId를 섞는 이유: 호스티드 Realtime에서 같은 토픽을 여러 클라이언트가 동시에
+ * 구독하면 일부 구독자가 postgres_changes 이벤트를 못 받는 버그가 있다
+ * (https://github.com/supabase/realtime/issues/1524). 커플 두 사람이 `couple:<id>`라는 동일
+ * 토픽을 쓰면 정확히 이 조건에 걸리므로, 토픽을 `couple:<coupleId>:<userId>`로 유니크하게 만든다.
+ * 토픽은 브로드캐스트 라우팅 키일 뿐 postgres_changes 구독 범위와 무관하므로 수신 내용은 동일하다.
  */
 export function useCoupleChannel(
   coupleId: string | undefined,
+  userId: string | undefined,
   handlers: CoupleChannelHandlers,
 ): void {
   // 매 렌더 새로 만들어지는 handlers 객체 때문에 채널을 매번 재구독하지 않도록 최신 값만 ref로 따라간다.
@@ -33,10 +40,10 @@ export function useCoupleChannel(
   })
 
   useEffect(() => {
-    if (!coupleId) return
+    if (!coupleId || !userId) return
 
     const channel = supabase
-      .channel(`couple:${coupleId}`)
+      .channel(`couple:${coupleId}:${userId}`)
       .on(
         'postgres_changes',
         {
@@ -74,10 +81,14 @@ export function useCoupleChannel(
         },
         () => handlersRef.current.onProfile?.(),
       )
-      .subscribe()
+      // 구독 실패(CHANNEL_ERROR / TIMED_OUT / CLOSED)는 화면을 막지 않지만 조용히 죽으면 원인을
+      // 못 찾으므로 콘솔에 남긴다. 갱신 자체는 수동 새로고침·폴링 경로로 계속 동작한다.
+      .subscribe((status, err) => {
+        if (status !== 'SUBSCRIBED') console.warn('[realtime]', status, err)
+      })
 
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [coupleId])
+  }, [coupleId, userId])
 }
