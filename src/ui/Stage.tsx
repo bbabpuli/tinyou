@@ -15,6 +15,8 @@ import { selectLastCaredAt, useGame } from '../state/store'
 import { SpeechBubble } from './SpeechBubble'
 
 const MOOD_REFRESH_MS = 1000
+// 말풍선 자동 회전 간격 — 쪽지 하나를 읽을 시간을 주고 다음 미읽음으로 넘어간다
+const BUBBLE_ROTATE_MS = 4000
 
 /** careLog에 "오늘(취침 판정 기준일)" 굿나잇 기록이 있는지 — 파트너/본인 구분 없이 캐릭터 전체 기록을 본다 */
 function hasGoodnightRecorded(careLog: CareAction[], now: Date): boolean {
@@ -46,10 +48,27 @@ export function Stage({ character, unread, markRead }: StageProps) {
   // 캐릭터 박스(스테이지 픽셀 좌표) — 매 프레임 루프에서 갱신, 캔버스 클릭 판정과 말풍선 위치 계산에 쓴다
   const posRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   const [bubbleMsg, setBubbleMsg] = useState<Message | null>(null)
+  // 이미 말풍선으로 보여주고 읽음 처리한 쪽지 id — markRead의 서버 refresh가 늦어도 같은 쪽지 재표시를 막는다
+  const shownIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     unreadRef.current = unread
   }, [unread])
+
+  // 말풍선 자동 회전: 열려 있는 동안 4초마다 다음 미읽음 쪽지로 넘어간다.
+  // 넘어간 쪽지는 읽음 처리(화면에 보여줬으니 읽은 것). 마지막 쪽지는 클릭까지 유지.
+  // bubbleMsg가 바뀔 때마다 타이머가 리셋되므로 각 쪽지가 온전히 4초씩 보인다.
+  useEffect(() => {
+    if (!bubbleMsg) return
+    const timer = setTimeout(() => {
+      const next = pickNextUnread(unreadRef.current, new Set([...shownIdsRef.current, bubbleMsg.id]))
+      if (!next) return
+      shownIdsRef.current.add(bubbleMsg.id)
+      void markRead(bubbleMsg.id)
+      setBubbleMsg(next)
+    }, BUBBLE_ROTATE_MS)
+    return () => clearTimeout(timer)
+  }, [bubbleMsg, markRead])
 
   useEffect(() => {
     const ctx = canvasRef.current!.getContext('2d')!
@@ -146,13 +165,14 @@ export function Stage({ character, unread, markRead }: StageProps) {
     )
     const hit = clickX >= topLeft.x && clickX <= bottomRight.x
       && clickY >= topLeft.y && clickY <= bottomRight.y
-    if (hit) setBubbleMsg(pickNextUnread(unread))
+    if (hit) setBubbleMsg(pickNextUnread(unread, shownIdsRef.current))
   }
 
   const closeBubble = () => {
     const msg = bubbleMsg
     setBubbleMsg(null)
     if (msg) {
+      shownIdsRef.current.add(msg.id)
       void markRead(msg.id)
       fsmRef.current?.endDeliver()
     }

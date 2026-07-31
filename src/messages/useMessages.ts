@@ -27,9 +27,15 @@ function toMessage(r: MessageRow): Message {
   }
 }
 
-/** 미읽음(readAt null) 중 가장 오래된 것을 고른다 — Stage 배달 오케스트레이션이 다음에 배달할 쪽지를 정할 때 쓰는 순수 함수. */
-export function pickNextUnread(messages: Message[]): Message | null {
-  const unread = messages.filter((m) => m.readAt === null)
+/**
+ * 미읽음(readAt null) 중 가장 오래된 것을 고른다 — Stage 배달 오케스트레이션이 다음에 배달할 쪽지를 정할 때 쓰는 순수 함수.
+ * excludeIds: 말풍선 회전에서 이미 보여준 쪽지 — markRead의 서버 refresh가 늦어도 재표시를 막는 로컬 가드.
+ */
+export function pickNextUnread(
+  messages: Message[],
+  excludeIds?: ReadonlySet<string>,
+): Message | null {
+  const unread = messages.filter((m) => m.readAt === null && !excludeIds?.has(m.id))
   if (unread.length === 0) return null
   return unread.reduce((oldest, m) => (m.createdAt < oldest.createdAt ? m : oldest))
 }
