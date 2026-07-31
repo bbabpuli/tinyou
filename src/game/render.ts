@@ -16,6 +16,14 @@ const FLOOR_Y = 200
  */
 export const SPRITE_IMAGE_SIZE = 64
 
+/** deliver 상태에서 머리 위에 스탬프로 찍는 6×5 편지봉투(테두리 O·몸 W·접힘선 O) */
+const ENVELOPE_MAP: string[] = ['OOOOOO', 'OOWWOO', 'OWOOWO', 'OWWWWO', 'OOOOOO']
+const ENVELOPE_PALETTE: Record<string, string> = {
+  O: '#8b5e34', // 테두리·접힘선
+  W: '#fff8e7', // 봉투 몸
+}
+const ENVELOPE_GAP = 6 // 머리 꼭대기와 봉투 사이 여백(px)
+
 export interface Scene {
   state: CharState
   mood: Happiness
@@ -95,5 +103,11 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
   if (scene.state === 'sad') {
     ctx.fillStyle = '#7ec8e3' // 눈물 한 방울
     ctx.fillRect(x + 2 * SCALE, y + 4 * SCALE, SCALE, SCALE * 2)
+  }
+
+  if (scene.state === 'deliver') {
+    const envW = ENVELOPE_MAP[0].length * SCALE
+    const envH = ENVELOPE_MAP.length * SCALE
+    drawPixelMap(ctx, ENVELOPE_MAP, ENVELOPE_PALETTE, x + (SPRITE_W - envW) / 2, y - envH - ENVELOPE_GAP, SCALE)
   }
 }
