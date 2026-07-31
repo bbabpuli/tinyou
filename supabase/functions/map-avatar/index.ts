@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import Anthropic from 'npm:@anthropic-ai/sdk'
+import Anthropic from 'npm:@anthropic-ai/sdk@0.115.0'
 
 const MAX_TOTAL_CHARS = 2000 // 답변 합계 상한 — 남용·비용 가드
 const MODEL = 'claude-haiku-4-5'
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
   if (!apiKey) return json(503, { error: 'MAPPING_UNAVAILABLE' })
 
-  const anthropic = new Anthropic({ apiKey })
+  const anthropic = new Anthropic({ apiKey, timeout: 10_000, maxRetries: 1 })
   try {
     const response = await anthropic.messages.create({
       model: MODEL,
@@ -108,7 +108,10 @@ Deno.serve(async (req) => {
       output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
       messages: [{ role: 'user', content: `연인 묘사:\n${texts.join('\n')}` }],
     })
-    const text = response.content.find((b) => b.type === 'text')?.text
+    const textBlock = response.content.find(
+      (b): b is Extract<(typeof response.content)[number], { type: 'text' }> => b.type === 'text',
+    )
+    const text = textBlock?.text
     if (!text) return json(502, { error: 'MAPPING_FAILED' })
     const mapping = JSON.parse(text) as { species: string; palette: string }
     // 스키마 강제로 이미 enum이 보장되지만, 서버가 최종 권위로 한 번 더 확인

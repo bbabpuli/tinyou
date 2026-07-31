@@ -32,6 +32,7 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
     try {
       const { data, error } = await supabase.functions.invoke('map-avatar', {
         body: { answers },
+        timeout: 15000,
       })
       // 실패는 조용히 폴백 — 매핑은 향상이지 의존성이 아니다
       setMapping(!error && data?.species ? { species: data.species, palette: data.palette } : null)
