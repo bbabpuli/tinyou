@@ -18,7 +18,7 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
       const ctx = canvasRef.current.getContext('2d')
       if (ctx) {
         ctx.imageSmoothingEnabled = false
-        ctx.clearRect(0, 0, 16, 16)
+        ctx.clearRect(0, 0, 32, 32)
         const { map, palette } = generateAvatar(answers, attempt)
         drawPixelMap(ctx, map, palette, 0, 0, 1)
       }
@@ -94,8 +94,8 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
       <h2>연인의 분신이에요!</h2>
       <canvas
         ref={canvasRef}
-        width={16}
-        height={16}
+        width={32}
+        height={32}
         style={{ width: 240, margin: '0 auto', imageRendering: 'pixelated' }}
       />
       <button disabled={busy} onClick={() => setAttempt((a) => a + 1)}>

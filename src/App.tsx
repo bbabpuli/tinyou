@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { LoginScreen } from './auth/LoginScreen'
 import { useSession } from './auth/useSession'
 import { CharacterCreate } from './character/CharacterCreate'
@@ -27,6 +27,7 @@ function MainApp() {
   )
   const loadCare = useGame((s) => s.loadCare)
   const mineId = mine?.id
+  const [redecorating, setRedecorating] = useState(false)
 
   useEffect(() => {
     if (mineId && userId) void loadCare(mineId, userId)
@@ -40,8 +41,19 @@ function MainApp() {
   else if (!couple.partner)
     body = <WaitingPartner inviteCode={couple.inviteCode} onRefresh={refreshCouple} />
   else if (!mine || !mine.name) body = <CharacterCreate onDone={refreshChars} />
+  // 새 v2 아바타로 아직 단장하지 않은 기존 캐릭터(regenCount === 0)는 답변을 새로 받아 재생성한다
+  else if (redecorating)
+    body = (
+      <CharacterCreate
+        onDone={() => {
+          setRedecorating(false)
+          refreshChars()
+        }}
+      />
+    )
   else body = (
     <>
+      {mine.regenCount === 0 && <RedecorateBanner onClick={() => setRedecorating(true)} />}
       <Stage character={mine} />
       <Hud character={mine} />
       <CareButtons />
@@ -53,5 +65,24 @@ function MainApp() {
       <h1 style={{ fontFamily: 'monospace', textAlign: 'center' }}>Tinyou</h1>
       {body}
     </main>
+  )
+}
+
+function RedecorateBanner({ onClick }: { onClick: () => void }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+        padding: '8px 12px',
+        borderRadius: 8,
+        background: '#fff3cd',
+      }}
+    >
+      <span>분신이 새 모습으로 단장하고 싶어해요 ✨</span>
+      <button onClick={onClick}>단장하러 가기</button>
+    </div>
   )
 }
