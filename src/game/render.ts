@@ -118,6 +118,12 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene): void {
     const blanketH = SPRITE_H * 0.4
     ctx.fillStyle = BLANKET_COLOR
     ctx.fillRect(x, y + SPRITE_H - blanketH, SPRITE_W, blanketH)
+    // 자는 중에도 밤에 온 쪽지의 시각 단서는 유지 — 봉투 스탬프는 이불 위에 그대로 찍는다
+    if (scene.state === 'deliver') {
+      const envW = ENVELOPE_MAP[0].length * SCALE
+      const envH = ENVELOPE_MAP.length * SCALE
+      drawPixelMap(ctx, ENVELOPE_MAP, ENVELOPE_PALETTE, x + (SPRITE_W - envW) / 2, y - envH - ENVELOPE_GAP, SCALE)
+    }
     return
   }
 
