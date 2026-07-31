@@ -15,6 +15,15 @@ interface StageProps {
   character: CharacterRow
 }
 
+/** 스테이지 좌표(캔버스 내부 픽셀 기준)를 canvas의 실제 표시 크기(CSS 픽셀) 기준 좌표로 변환한다. */
+export function stageToCss(
+  pos: { x: number; y: number },
+  canvasEl: HTMLCanvasElement,
+): { x: number; y: number } {
+  const scale = canvasEl.getBoundingClientRect().width / STAGE_W
+  return { x: pos.x * scale, y: pos.y * scale }
+}
+
 export function Stage({ character }: StageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -90,11 +99,13 @@ export function Stage({ character }: StageProps) {
   }, [character.imageUrl])
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={STAGE_W}
-      height={STAGE_H}
-      style={{ width: '100%', maxWidth: 480, imageRendering: 'pixelated', borderRadius: 12 }}
-    />
+    <div style={{ position: 'relative' }}>
+      <canvas
+        ref={canvasRef}
+        width={STAGE_W}
+        height={STAGE_H}
+        style={{ width: '100%', maxWidth: 480, imageRendering: 'pixelated', borderRadius: 12 }}
+      />
+    </div>
   )
 }
