@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { generateAvatar } from '../game/avatar'
+import { generateAvatar, type AvatarMapping } from '../game/avatar'
 import { drawPixelMap } from '../game/sprite'
 import { supabase } from '../lib/supabase'
 import { QUESTIONS } from './questions'
@@ -11,6 +11,7 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [mapping, setMapping] = useState<AvatarMapping | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -19,13 +20,25 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
       if (ctx) {
         ctx.imageSmoothingEnabled = false
         ctx.clearRect(0, 0, 32, 32)
-        const { map, palette } = generateAvatar(answers, attempt)
+        const { map, palette } = generateAvatar(answers, attempt, mapping)
         drawPixelMap(ctx, map, palette, 0, 0, 1)
       }
     }
-  }, [answers, attempt, step])
+  }, [answers, attempt, step, mapping])
 
-  const generate = () => {
+  const generate = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('map-avatar', {
+        body: { answers },
+      })
+      // 실패는 조용히 폴백 — 매핑은 향상이지 의존성이 아니다
+      setMapping(!error && data?.species ? { species: data.species, palette: data.palette } : null)
+    } catch {
+      setMapping(null)
+    }
+    setBusy(false)
     setStep('preview')
   }
 
@@ -40,7 +53,7 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
     const base64 = canvas.toDataURL('image/png').split(',')[1]
     const { data, error } = await supabase.functions.invoke('upload-character', {
       // avatarSeed: 같은 답변·salt면 동일한 도트가 재생성된다 — Plan 3 꾸미기의 기반 데이터
-      body: { imageBase64: base64, name, avatarSeed: { answers, salt: attempt } },
+      body: { imageBase64: base64, name, avatarSeed: { answers, salt: attempt, mapping } },
     })
     setBusy(false)
     let code: string = data?.error ?? ''
@@ -82,7 +95,7 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
           </label>
         ))}
         <button disabled={busy || answers.every((a) => !a.trim())} onClick={generate}>
-          {busy ? '분신을 그리는 중… 🎨' : '분신 만나러 가기'}
+          {busy ? '분신을 상상하는 중… ✨' : '분신 만나러 가기'}
         </button>
         {error && <p style={{ color: 'crimson' }}>{error}</p>}
       </div>
