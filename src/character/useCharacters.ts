@@ -30,35 +30,35 @@ export function useCharacters(coupleId: string | undefined, myUserId: string | u
   const [loading, setLoading] = useState(true)
   const latestKeyRef = useRef(`${coupleId}:${myUserId}`)
 
-  const refresh = useCallback(() => {
+  // Promise를 반환해 호출자가 리페치 완료를 기다릴 수 있다 (단장 완료 → 배너 조건 재평가 순서 보장)
+  const refresh = useCallback(async (): Promise<void> => {
     if (!coupleId || !myUserId) {
       setLoading(false)
       return
     }
     const capturedKey = `${coupleId}:${myUserId}`
     setLoading(true)
-    supabase
+    const { data, error } = await supabase
       .from('characters')
       .select('id, owner_user_id, name, image_path, regen_count')
       .eq('couple_id', coupleId)
-      .then(({ data, error }) => {
-        // Guard against stale responses from prior coupleId/myUserId
-        if (capturedKey !== latestKeyRef.current) {
-          return
-        }
 
-        // Handle errors: keep previous state, log, and clear loading
-        if (error) {
-          console.warn('Failed to fetch characters:', error.message)
-          setLoading(false)
-          return
-        }
+    // Guard against stale responses from prior coupleId/myUserId
+    if (capturedKey !== latestKeyRef.current) {
+      return
+    }
 
-        const rows = (data ?? []).map(toRow)
-        setMine(rows.find((r) => r.ownerUserId === myUserId) ?? null)
-        setPartners(rows.find((r) => r.ownerUserId !== myUserId) ?? null)
-        setLoading(false)
-      })
+    // Handle errors: keep previous state, log, and clear loading
+    if (error) {
+      console.warn('Failed to fetch characters:', error.message)
+      setLoading(false)
+      return
+    }
+
+    const rows = (data ?? []).map(toRow)
+    setMine(rows.find((r) => r.ownerUserId === myUserId) ?? null)
+    setPartners(rows.find((r) => r.ownerUserId !== myUserId) ?? null)
+    setLoading(false)
   }, [coupleId, myUserId])
 
   // Update ref whenever coupleId or myUserId changes to guard against stale responses
@@ -66,6 +66,8 @@ export function useCharacters(coupleId: string | undefined, myUserId: string | u
     latestKeyRef.current = `${coupleId}:${myUserId}`
   }, [coupleId, myUserId])
 
-  useEffect(refresh, [refresh])
+  useEffect(() => {
+    void refresh() // refresh가 Promise를 반환하므로 effect cleanup으로 오인되지 않게 감싼다
+  }, [refresh])
   return { mine, partners, loading, refresh }
 }

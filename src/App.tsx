@@ -87,8 +87,8 @@ function MainApp() {
         </button>
         <CharacterCreate
           onDone={() => {
-            setRedecorating(false)
-            refreshChars()
+            // 리페치가 끝난 뒤에 스테이지로 전환해야 옛 regenCount=0으로 배너가 재표시되지 않는다
+            void refreshChars().then(() => setRedecorating(false))
           }}
         />
       </>
