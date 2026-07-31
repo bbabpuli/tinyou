@@ -27,12 +27,11 @@ function MainApp() {
   const { session, loading: authLoading } = useSession()
   const userId = session?.user.id
   const { couple, loading: coupleLoading, refresh: refreshCouple } = useCouple(userId)
-  const { mine, loading: charLoading, refresh: refreshChars } = useCharacters(
+  const { mine, partners, loading: charLoading, refresh: refreshChars } = useCharacters(
     couple?.coupleId,
     userId,
   )
   const loadCare = useGame((s) => s.loadCare)
-  const careLog = useGame((s) => s.careLog)
   const mineId = mine?.id
   const [redecorating, setRedecorating] = useState(false)
   const { unread, inbox, send, markRead, refresh: refreshMessages } = useMessages(
@@ -75,7 +74,7 @@ function MainApp() {
     <>
       {mine.regenCount === 0 && <RedecorateBanner onClick={() => setRedecorating(true)} />}
       <TraceToast
-        careLog={careLog}
+        partnerCharacterId={partners?.id ?? null}
         partnerId={couple.partner.userId}
         partnerNickname={couple.partner.nickname}
       />
