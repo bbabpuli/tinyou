@@ -32,14 +32,38 @@ const COLOR_DICT: [PaletteKey, string[]][] = [
   ['taupe', ['갈색', '브라운', '초코', '커피']],
 ]
 
-// Build a sorted list of all species words (longest first) with their species key
-const SPECIES_WORDS_SORTED: Array<[SpeciesKey, string]> = []
+// Build a list of all species words with their species key
+const SPECIES_WORDS: Array<[SpeciesKey, string]> = []
 for (const [speciesKey, words] of Object.entries(SPECIES_SYNONYMS) as [SpeciesKey, string[]][]) {
   for (const word of words) {
-    SPECIES_WORDS_SORTED.push([speciesKey, word])
+    SPECIES_WORDS.push([speciesKey, word])
   }
 }
-SPECIES_WORDS_SORTED.sort((a, b) => b[1].length - a[1].length)
+
+// Generic helper: find best match by position then word length
+function findBestMatch<T>(
+  answer: string,
+  candidates: Array<[T, string]>,
+): T | null {
+  const matches: Array<{ key: T; word: string; index: number; length: number }> = []
+
+  for (const [key, word] of candidates) {
+    const index = answer.indexOf(word)
+    if (index !== -1) {
+      matches.push({ key, word, index, length: word.length })
+    }
+  }
+
+  if (matches.length === 0) return null
+
+  // Sort by: position first (leftmost), then by length (longest)
+  matches.sort((a, b) => {
+    if (a.index !== b.index) return a.index - b.index
+    return b.length - a.length
+  })
+
+  return matches[0].key
+}
 
 function firstMatch<T>(answers: string[], entries: [T, string[]][]): T | null {
   for (const answer of answers) {
@@ -52,13 +76,22 @@ function firstMatch<T>(answers: string[], entries: [T, string[]][]): T | null {
 
 export function matchSpecies(answers: string[]): SpeciesKey | null {
   for (const answer of answers) {
-    for (const [speciesKey, word] of SPECIES_WORDS_SORTED) {
-      if (answer.includes(word)) return speciesKey
-    }
+    const match = findBestMatch(answer, SPECIES_WORDS)
+    if (match) return match
   }
   return null
 }
 
 export function matchPalette(answers: string[]): PaletteKey | null {
-  return firstMatch(answers, COLOR_DICT)
+  for (const answer of answers) {
+    const colorCandidates: Array<[PaletteKey, string]> = []
+    for (const [paletteKey, words] of COLOR_DICT) {
+      for (const word of words) {
+        colorCandidates.push([paletteKey, word])
+      }
+    }
+    const match = findBestMatch(answer, colorCandidates)
+    if (match) return match
+  }
+  return null
 }

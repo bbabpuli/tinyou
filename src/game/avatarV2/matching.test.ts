@@ -33,3 +33,8 @@ test('여러 후보면 먼저 등장한 답변 우선', () => {
 test('개구리 vs 개 최장 매칭', () => {
   expect(matchSpecies(['개구리 닮음'])).toBe('frog')
 })
+
+test('한 답변 내 동률은 등장 위치 우선', () => {
+  expect(matchSpecies(['강아지 반 고양이 반'])).toBe('dog')
+  expect(matchSpecies(['고양이 반 강아지 반'])).toBe('cat')
+})
