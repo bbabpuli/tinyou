@@ -6,6 +6,9 @@ import { useCharacters } from './character/useCharacters'
 import { CoupleSetup } from './couple/CoupleSetup'
 import { useCouple } from './couple/useCouple'
 import { WaitingPartner } from './couple/WaitingPartner'
+import { Inbox } from './messages/Inbox'
+import { SendNote } from './messages/SendNote'
+import { useMessages } from './messages/useMessages'
 import { useGame } from './state/store'
 import { AvatarGallery } from './ui/AvatarGallery'
 import { CareButtons } from './ui/CareButtons'
@@ -28,6 +31,7 @@ function MainApp() {
   const loadCare = useGame((s) => s.loadCare)
   const mineId = mine?.id
   const [redecorating, setRedecorating] = useState(false)
+  const { unread, inbox, send, markRead } = useMessages(couple?.coupleId, userId)
 
   useEffect(() => {
     if (mineId && userId) void loadCare(mineId, userId)
@@ -54,9 +58,11 @@ function MainApp() {
   else body = (
     <>
       {mine.regenCount === 0 && <RedecorateBanner onClick={() => setRedecorating(true)} />}
-      <Stage character={mine} />
+      <Stage character={mine} unread={unread} markRead={markRead} />
       <Hud character={mine} />
       <CareButtons />
+      <SendNote send={send} />
+      <Inbox inbox={inbox} />
     </>
   )
 
