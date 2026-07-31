@@ -32,7 +32,7 @@ export function createCharacterFsm(rng: () => number = Math.random): CharacterFs
   let mood: Happiness = 'ok'
   let phaseMs = 0
   const queue: CareInput[] = []
-  let deliverPending = false
+  let deliverPending = false // 큐가 항상 pending deliver보다 우선
   let delivering = false
 
   function ambientDurationMs(s: CharState): number {
@@ -64,11 +64,15 @@ export function createCharacterFsm(rng: () => number = Math.random): CharacterFs
       deliverPending = true
     },
     endDeliver() {
-      if (!delivering) return
-      delivering = false
-      state = 'happy'
-      remainMs = HAPPY_MS
-      phaseMs = 0
+      if (delivering) {
+        delivering = false
+        state = 'happy'
+        remainMs = HAPPY_MS
+        phaseMs = 0
+      } else {
+        // 아직 deliver에 진입하지 않은 시점(startDeliver 직후, update 전)의 취소 — pending만 지운다.
+        deliverPending = false
+      }
     },
     update(dtMs) {
       // If not in action and queue has items, start the next one

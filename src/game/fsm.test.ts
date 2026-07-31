@@ -161,3 +161,11 @@ test('액션(eat) 중 startDeliver는 액션 끝난 뒤 진입', () => {
   fsm.update(16)
   expect(fsm.state).toBe('deliver')
 })
+
+test('진입 전 endDeliver는 pending을 취소', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.startDeliver()
+  fsm.endDeliver() // 아직 update 전 — 취소
+  fsm.update(16)
+  expect(fsm.state).not.toBe('deliver')
+})
