@@ -135,8 +135,9 @@ export function Stage({ character, unread, markRead }: StageProps) {
       fsm.setMood(mood)
       fsm.setSleeping(sleeping)
       if (input) fsm.enqueue(input)
-      // 미읽음 쪽지가 있으면 배달 연출 진입을 매 프레임 요청한다 — 이미 배달 중/액션 중이면 fsm 내부에서 no-op이라 안전
-      if (unreadRef.current.length > 0) fsm.startDeliver()
+      // 아직 보여주지 않은 미읽음이 있을 때만 배달 연출 — 이미 배달 중/액션 중이면 fsm 내부에서 no-op이라 안전.
+      // shownIds 제외를 안 하면 마지막 쪽지 클릭 후 markRead 서버 반영까지 봉투가 남거나 깜빡인다.
+      if (pickNextUnread(unreadRef.current, shownIdsRef.current)) fsm.startDeliver()
       fsm.update(dt) // enqueue는 전이를 일으키지 않으므로, 스폰 위치는 update 이후 상태로 계산한다
       walker.update(dt, fsm.state === 'walk')
       const scene = {
