@@ -7,11 +7,17 @@ import { CoupleSetup } from './couple/CoupleSetup'
 import { useCouple } from './couple/useCouple'
 import { WaitingPartner } from './couple/WaitingPartner'
 import { useGame } from './state/store'
+import { AvatarGallery } from './ui/AvatarGallery'
 import { CareButtons } from './ui/CareButtons'
 import { Hud } from './ui/Hud'
 import { Stage } from './ui/Stage'
 
 export function App() {
+  if (new URLSearchParams(window.location.search).has('gallery')) return <AvatarGallery />
+  return <MainApp />
+}
+
+function MainApp() {
   const { session, loading: authLoading } = useSession()
   const userId = session?.user.id
   const { couple, loading: coupleLoading, refresh: refreshCouple } = useCouple(userId)

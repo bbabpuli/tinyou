@@ -65,15 +65,6 @@ function findBestMatch<T>(
   return matches[0].key
 }
 
-function firstMatch<T>(answers: string[], entries: [T, string[]][]): T | null {
-  for (const answer of answers) {
-    for (const [key, words] of entries) {
-      if (words.some((w) => answer.includes(w))) return key
-    }
-  }
-  return null
-}
-
 export function matchSpecies(answers: string[]): SpeciesKey | null {
   for (const answer of answers) {
     const match = findBestMatch(answer, SPECIES_WORDS)
