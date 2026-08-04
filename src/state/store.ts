@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { canCareToday, lastCaredAt, xpFromActions, type CareAction, type CareType } from '../domain/care'
+import { canCareToday, canPetStackToday, lastCaredAt, xpFromActions, type CareAction, type CareType } from '../domain/care'
+import { canFeedNow } from '../domain/hunger'
 import type { CareInput } from '../game/fsm'
 import { supabase } from '../lib/supabase'
 
@@ -64,10 +65,19 @@ export const useGame = create<GameStore>()((set, get) => ({
   async care(type, now = new Date()) {
     const { careLog, characterId, userId, insertCare } = get()
     if (!characterId || !userId) return false
-    if (!canCareToday(careLog, userId, type, now)) return false
-    const action: CareAction = { userId, type, createdAt: now }
     // goodnight은 FSM 액션 애니메이션(eat/petted)이 없다 — 취침 장면 재판정으로 반영되므로 큐에 넣지 않는다.
     const isCareInput = (t: CareType): t is CareInput => t === 'feed' || t === 'pet'
+
+    // 게이트: 밥=배고플 때만(두 끼 리듬), 굿나잇=하루 1회, 쓰다듬=항상 통과
+    if (type === 'feed' && !canFeedNow(careLog, now)) return false
+    if (type === 'goodnight' && !canCareToday(careLog, userId, type, now)) return false
+    if (type === 'pet' && !canPetStackToday(careLog, userId, now)) {
+      // 스택 소진 — 무한 쓰다듬기: 기록·XP 없이 로컬 애니메이션만 재생
+      set((s) => ({ pending: [...s.pending, 'pet' as CareInput] }))
+      return true
+    }
+
+    const action: CareAction = { userId, type, createdAt: now }
     set((s) => ({
       careLog: [...s.careLog, action],
       pending: isCareInput(type) ? [...s.pending, type] : s.pending,
