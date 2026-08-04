@@ -209,16 +209,17 @@ export function Stage({ character, unread, markRead }: StageProps) {
         width={STAGE_W}
         height={STAGE_H}
         onClick={handleCanvasClick}
-        style={{ width: '100%', maxWidth: 480, imageRendering: 'pixelated', borderRadius: 12 }}
+        style={{ width: '100%', display: 'block', imageRendering: 'pixelated' }}
       />
       {hungry && (
         <span
+          aria-hidden
           style={{
             position: 'absolute',
             top: 8,
             right: 12,
-            fontFamily: 'monospace',
             fontSize: 12,
+            pointerEvents: 'none',
             animation: 'tinyou-growl 6s ease-in-out infinite',
           }}
         >

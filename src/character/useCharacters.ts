@@ -7,11 +7,13 @@ export interface CharacterRow {
   name: string | null
   imageUrl: string | null
   regenCount: number
+  /** characters.palette (avatar_seed에서 파생된 generated column) — 셸 테마용. 구세대 시드면 null */
+  paletteKey: string | null
 }
 
 function toRow(r: {
   id: string; owner_user_id: string; name: string | null
-  image_path: string | null; regen_count: number
+  image_path: string | null; regen_count: number; palette: string | null
 }): CharacterRow {
   return {
     id: r.id,
@@ -21,6 +23,7 @@ function toRow(r: {
       ? supabase.storage.from('characters').getPublicUrl(r.image_path).data.publicUrl
       : null,
     regenCount: r.regen_count,
+    paletteKey: r.palette,
   }
 }
 
@@ -40,7 +43,7 @@ export function useCharacters(coupleId: string | undefined, myUserId: string | u
     setLoading(true)
     const { data, error } = await supabase
       .from('characters')
-      .select('id, owner_user_id, name, image_path, regen_count')
+      .select('id, owner_user_id, name, image_path, regen_count, palette')
       .eq('couple_id', coupleId)
 
     // Guard against stale responses from prior coupleId/myUserId

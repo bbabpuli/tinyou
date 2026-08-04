@@ -1,10 +1,15 @@
 import { useMemo } from 'react'
-import { canCareToday, canPetStackToday } from '../domain/care'
-import { canFeedNow, hoursUntilHungry, lastFedAt } from '../domain/hunger'
+import { canCareToday } from '../domain/care'
+import { canFeedNow } from '../domain/hunger'
 import { isGoodnightWindow } from '../game/night'
 import { useTick } from '../hooks/useTick'
 import { useGame } from '../state/store'
+import { DeviceButton } from './shell/DeviceButton'
 
+/**
+ * 셸의 물리 버튼 3개. 상태 안내(배부름·스택)는 LcdTicker가 기기 화면 안에서 담당한다.
+ * 굿나잇은 창 밖 시간에도 사라지지 않고 비활성 — 물리 버튼은 뽑았다 꽂는 게 아니다.
+ */
 export function CareButtons({ onPetSent }: { onPetSent?: () => void }) {
   useTick(60_000) // 배고픔·자정(Asia/Seoul)·굿나잇 창이 시간만으로 바뀌므로 클릭 없이도 재반영돼야 한다
   const care = useGame((s) => s.care)
@@ -12,34 +17,19 @@ export function CareButtons({ onPetSent }: { onPetSent?: () => void }) {
   const userId = useGame((s) => s.userId)
   const now = new Date()
   const feedable = useMemo(() => !!userId && canFeedNow(careLog, now), [careLog, userId, now])
-  const untilHungry = useMemo(() => hoursUntilHungry(lastFedAt(careLog), now), [careLog, now])
-  const petStackLeft = useMemo(
-    () => !!userId && canPetStackToday(careLog, userId, now),
-    [careLog, userId, now],
-  )
-  const showGoodnight = isGoodnightWindow(now)
+  const goodnightOpen = isGoodnightWindow(now)
   const canGoodnight = useMemo(
-    () => !!userId && canCareToday(careLog, userId, 'goodnight', now),
-    [careLog, userId, now],
+    () => goodnightOpen && !!userId && canCareToday(careLog, userId, 'goodnight', now),
+    [careLog, userId, goodnightOpen, now],
   )
   const handlePet = async () => {
     if (await care('pet')) onPetSent?.()
   }
   return (
-    <div style={{ display: 'grid', gap: 4, justifyItems: 'center' }}>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-        <button disabled={!feedable} onClick={() => care('feed')}>🍙 밥 주기</button>
-        <button disabled={!userId} onClick={handlePet}>🫳 쓰다듬기</button>
-        {showGoodnight && (
-          <button disabled={!canGoodnight} onClick={() => care('goodnight')}>🌙 굿나잇 인사</button>
-        )}
-      </div>
-      {!feedable && userId && (
-        <small style={{ color: '#888' }}>아직 배불러요 — 약 {untilHungry}시간 후에 배고파져요</small>
-      )}
-      {!petStackLeft && userId && (
-        <small style={{ color: '#888' }}>오늘 쓰다듬기 XP는 다 모았어요 — 그래도 계속 쓰다듬을 수 있어요 🫶</small>
-      )}
+    <div className="device-buttons">
+      <DeviceButton icon="🍙" label="밥" disabled={!feedable} onClick={() => void care('feed')} />
+      <DeviceButton icon="🫳" label="쓰담" disabled={!userId} onClick={() => void handlePet()} />
+      <DeviceButton icon="🌙" label="굿나잇" disabled={!canGoodnight} onClick={() => void care('goodnight')} />
     </div>
   )
 }

@@ -4,7 +4,258 @@
   font-display: swap;
 }
 
+/* ── 토큰: LCD는 팔레트와 무관한 고정 부품, 셸 색은 Shell.tsx가 인라인 변수로 주입 ── */
+:root {
+  --lcd-bg: #cfe3b4;
+  --lcd-bg-deep: #b7cf9b;
+  --lcd-bezel: #5b4a3f;
+  --lcd-ink: #3d4a2c;
+  --lcd-ink-soft: #5d6b47;
+  --gauge-fill: #5b8a4a;
+  --paper: #fffdf9;
+  --backdrop: #2b2430;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  background: var(--backdrop);
+  font-family: 'PixelKR', monospace;
+  -webkit-font-smoothing: none;
+}
+
+button, input, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* 픽셀 버튼 기본형 — 트레이·보조 화면의 모든 버튼이 이 언어를 쓴다 */
+button {
+  background: var(--paper);
+  border: 2px solid var(--lcd-bezel);
+  border-radius: 10px;
+  padding: 6px 12px;
+  color: var(--lcd-bezel);
+  box-shadow: 0 3px 0 var(--lcd-bezel);
+  cursor: pointer;
+}
+button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--lcd-bezel);
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+  box-shadow: 0 3px 0 rgba(91, 74, 63, 0.4);
+}
+button:focus-visible, input:focus-visible {
+  outline: 3px solid var(--gauge-fill);
+  outline-offset: 2px;
+}
+input {
+  background: var(--paper);
+  border: 2px solid var(--lcd-bezel);
+  border-radius: 10px;
+  padding: 6px 10px;
+  color: var(--lcd-bezel);
+}
+
+/* ── 셸: 뷰포트 전체가 기기다 ── */
+.shell {
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 14px 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(165deg, var(--shell-base) 0%, var(--shell-deep) 100%);
+  box-shadow:
+    inset -12px -16px 0 rgba(0, 0, 0, 0.07),
+    inset 10px 12px 0 rgba(255, 255, 255, 0.22);
+  color: var(--shell-text);
+  transition: background 0.6s;
+}
+/* 데스크톱: 기기 폭 유지, 바깥은 어두운 책상 */
+@media (min-width: 520px) {
+  .shell {
+    min-height: calc(100dvh - 48px);
+    margin: 24px auto;
+    border-radius: 28px;
+  }
+}
+
+.shell-logo {
+  font-size: 13px;
+  letter-spacing: 6px;
+  margin: 2px 0 12px;
+  user-select: none;
+}
+
+/* ── LCD ── */
+.lcd {
+  width: 100%;
+  background: var(--lcd-bg);
+  border: 6px solid var(--lcd-bezel);
+  border-radius: 16px;
+  box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.12);
+  color: var(--lcd-ink);
+  overflow: hidden;
+  position: relative;
+}
+/* 은은한 스캔라인 — LCD 유리 질감 */
+.lcd::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(61, 74, 44, 0.045) 4px
+  );
+}
+.lcd-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px 2px;
+  font-size: 13px;
+}
+.lcd-gauge {
+  height: 10px;
+  margin: 2px 10px 4px;
+  background: var(--lcd-bg-deep);
+  border: 2px solid var(--lcd-bezel);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.lcd-gauge > div {
+  height: 100%;
+  background: var(--gauge-fill);
+  transition: width 0.4s;
+}
+.lcd-ticker {
+  min-height: 20px;
+  padding: 0 10px 6px;
+  font-size: 12px;
+  color: var(--lcd-ink-soft);
+  text-align: center;
+}
+
+/* 보조 화면(로그인·커플·생성)을 담는 LCD 카드 */
+.lcd-card {
+  width: 100%;
+  background: var(--lcd-bg);
+  border: 6px solid var(--lcd-bezel);
+  border-radius: 16px;
+  box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.12);
+  color: var(--lcd-ink);
+  padding: 18px 16px;
+  margin-top: 8px;
+  display: grid;
+  gap: 12px;
+}
+
+/* ── 물리 버튼 ── */
+.device-buttons {
+  display: flex;
+  gap: 26px;
+  margin: 20px 0 8px;
+}
+.device-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: var(--shell-text);
+}
+.device-button:active:not(:disabled) { transform: none; box-shadow: none; }
+.device-button:disabled { opacity: 0.4; box-shadow: none; }
+.device-button .cap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, 0.25),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  transition: transform 0.05s;
+}
+.device-button:active:not(:disabled) .cap {
+  transform: translateY(5px);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.25),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.08);
+}
+.device-button .cap-label { font-size: 12px; }
+
+/* ── 트레이 (바텀시트) ── */
+.tray {
+  margin-top: auto;
+  width: calc(100% + 32px); /* 셸 좌우 패딩 상쇄 — 트레이는 가장자리까지 */
+  background: var(--paper);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 0 rgba(0, 0, 0, 0.12);
+  color: var(--lcd-bezel);
+}
+.tray-handle {
+  width: 100%;
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: 20px 20px 0 0;
+  padding: 10px 16px 8px;
+  font-size: 14px;
+  color: inherit;
+}
+.tray-handle:active:not(:disabled) { transform: none; box-shadow: none; }
+.tray-handle .grip {
+  width: 44px;
+  height: 5px;
+  background: rgba(91, 74, 63, 0.25);
+  border-radius: 3px;
+  margin: 0 auto 7px;
+}
+.tray-badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--shell-deep);
+  color: var(--paper);
+  font-size: 12px;
+}
+.tray-body {
+  display: grid;
+  gap: 14px;
+  padding: 4px 16px 20px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.tray-section-label {
+  font-size: 12px;
+  opacity: 0.55;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+/* ── 연출 ── */
 @keyframes tinyou-growl {
   0%, 55%, 100% { opacity: 0; }
   65%, 90% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell, .lcd-gauge > div, .device-button .cap { transition: none; }
 }

@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase'
 import { useGame } from '../state/store'
 
+/** 트레이의 설정 구역 — 지금은 로그아웃 하나. (구 우상단 플로팅 버튼에서 이사) */
 export function SettingsCorner() {
   const reset = useGame((s) => s.reset)
 
@@ -12,27 +13,11 @@ export function SettingsCorner() {
   }
 
   return (
-    <button
-      onClick={handleLogout}
-      style={{
-        position: 'fixed',
-        top: 16,
-        right: 16,
-        width: 48,
-        height: 48,
-        borderRadius: '50%',
-        border: 'none',
-        background: '#f0f0f0',
-        cursor: 'pointer',
-        fontSize: 24,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      }}
-      title="설정"
-    >
-      ⚙️
-    </button>
+    <div>
+      <div className="tray-section-label">설정</div>
+      <button onClick={() => void handleLogout()} style={{ width: '100%' }}>
+        ⚙️ 로그아웃
+      </button>
+    </div>
   )
 }
