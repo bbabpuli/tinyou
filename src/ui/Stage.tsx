@@ -270,7 +270,9 @@ export function Stage({ character, unread, markRead, onPet }: StageProps) {
           y={bubblePos.y}
           onClose={() => setAngryDismissedAt(petAngryAt)}
         >
-          <IconAngry size={20} label="너무 많이 쓰다듬어서 화남" />
+          <span style={{ color: '#e0453a' }}>
+            <IconAngry size={34} label="너무 많이 쓰다듬어서 화남" />
+          </span>
         </SpeechBubble>
       )}
     </div>
