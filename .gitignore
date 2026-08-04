@@ -4,3 +4,4 @@ dist/
 *.tsbuildinfo
 .env.local
 supabase/.temp/
+.worktrees/
