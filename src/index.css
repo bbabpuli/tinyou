@@ -3,3 +3,8 @@
   src: url('/fonts/DungGeunMo.woff2') format('woff2');
   font-display: swap;
 }
+
+@keyframes tinyou-growl {
+  0%, 55%, 100% { opacity: 0; }
+  65%, 90% { opacity: 1; }
+}

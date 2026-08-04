@@ -3,6 +3,7 @@ import type { CharacterRow } from '../character/useCharacters'
 import type { CareAction } from '../domain/care'
 import { dateKeySeoul } from '../domain/dateKey'
 import { happinessFrom, type Happiness } from '../domain/happiness'
+import { hungerFrom, lastFedAt } from '../domain/hunger'
 import { createCharacterFsm, type CharacterFsm } from '../game/fsm'
 import { goodnightDateKeys, isSleepScene } from '../game/night'
 import { startLoop } from '../game/loop'
@@ -11,6 +12,7 @@ import { ParticleSystem } from '../game/particles'
 import { characterPos, renderScene, SPRITE_H, SPRITE_W, STAGE_H, STAGE_W } from '../game/render'
 import { loadCharacterImage } from '../game/spriteImage'
 import { createWalker } from '../game/walker'
+import { useTick } from '../hooks/useTick'
 import { selectLastCaredAt, useGame } from '../state/store'
 import { SpeechBubble } from './SpeechBubble'
 
@@ -50,6 +52,9 @@ export function Stage({ character, unread, markRead }: StageProps) {
   const [bubbleMsg, setBubbleMsg] = useState<Message | null>(null)
   // 이미 말풍선으로 보여주고 읽음 처리한 쪽지 id — markRead의 서버 refresh가 늦어도 같은 쪽지 재표시를 막는다
   const shownIdsRef = useRef<Set<string>>(new Set())
+  useTick(60_000) // 배고픔 배지는 시간만으로 나타나고 사라진다
+  const careLog = useGame((s) => s.careLog)
+  const hungry = hungerFrom(lastFedAt(careLog), new Date()) === 'hungry'
 
   useEffect(() => {
     unreadRef.current = unread
@@ -206,6 +211,20 @@ export function Stage({ character, unread, markRead }: StageProps) {
         onClick={handleCanvasClick}
         style={{ width: '100%', maxWidth: 480, imageRendering: 'pixelated', borderRadius: 12 }}
       />
+      {hungry && (
+        <span
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 12,
+            fontFamily: 'monospace',
+            fontSize: 12,
+            animation: 'tinyou-growl 6s ease-in-out infinite',
+          }}
+        >
+          꼬르륵…
+        </span>
+      )}
       {bubbleMsg && (
         <SpeechBubble x={bubblePos.x} y={bubblePos.y} onClose={closeBubble}>
           {bubbleMsg.body}
