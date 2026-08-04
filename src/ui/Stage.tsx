@@ -14,7 +14,6 @@ import { loadCharacterImage } from '../game/spriteImage'
 import { createWalker } from '../game/walker'
 import { useTick } from '../hooks/useTick'
 import { selectLastCaredAt, useGame } from '../state/store'
-import { IconAngry } from './icons'
 import { SpeechBubble } from './SpeechBubble'
 
 const MOOD_REFRESH_MS = 1000
@@ -270,9 +269,13 @@ export function Stage({ character, unread, markRead, onPet }: StageProps) {
           y={bubblePos.y}
           onClose={() => setAngryDismissedAt(petAngryAt)}
         >
-          <span style={{ color: '#e0453a' }}>
-            <IconAngry size={34} label="너무 많이 쓰다듬어서 화남" />
-          </span>
+          <img
+            src="/icons/anger-noto.svg"
+            width={34}
+            height={34}
+            alt="너무 많이 쓰다듬어서 화남"
+            style={{ display: 'block' }}
+          />
         </SpeechBubble>
       )}
     </div>

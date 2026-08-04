@@ -1,0 +1,15 @@
+Noto Emoji 아이콘 라이선스 사본
+================================
+
+파일: anger-noto.svg (U+1F4A2 ANGER SYMBOL, 💢)
+출처: Google Noto Emoji
+  https://github.com/googlefonts/noto-emoji
+  raw: https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f4a2.svg
+
+라이선스: Apache License 2.0
+  https://github.com/googlefonts/noto-emoji/blob/main/LICENSE
+
+Apache 2.0 요약: 상업적 사용·수정·재배포 허용. 재배포 시 라이선스 고지 포함 필요
+(본 파일이 그 고지다). 상표 사용권은 부여되지 않음.
+
+조회일: 2026-08-04

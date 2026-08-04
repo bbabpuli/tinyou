@@ -61,24 +61,6 @@ const GLYPHS = {
     '#..........#',
     '############',
   ],
-  /** 💢 앵거 베인 — 바깥 획 4개가 핀휠로 도는 만화 화남 마크. 쓰담 스팸 시 말풍선에 뜬다 (빨강 권장) */
-  angry: [
-    '..####.........',
-    '..####.........',
-    '.....##......##',
-    '......##.....##',
-    '.............##',
-    '............###',
-    '...........##..',
-    '...#.......#...',
-    '..##...........',
-    '###............',
-    '##.............',
-    '##.....##......',
-    '##......##.....',
-    '.........####..',
-    '.........####..',
-  ],
   /** 슬라이더 — 설정 */
   gear: [
     '...##.......',
@@ -130,5 +112,4 @@ export const IconRice = (p: IconProps) => <PixelIcon glyph="rice" {...p} />
 export const IconHeart = (p: IconProps) => <PixelIcon glyph="heart" {...p} />
 export const IconMoon = (p: IconProps) => <PixelIcon glyph="moon" {...p} />
 export const IconMail = (p: IconProps) => <PixelIcon glyph="mail" {...p} />
-export const IconAngry = (p: IconProps) => <PixelIcon glyph="angry" {...p} />
 export const IconGear = (p: IconProps) => <PixelIcon glyph="gear" {...p} />

@@ -1,5 +1,5 @@
 import { SpeechBubble } from './SpeechBubble'
-import { IconAngry, IconGear, IconHeart, IconMail, IconMoon, IconRice } from './icons'
+import { IconGear, IconHeart, IconMail, IconMoon, IconRice } from './icons'
 import { Shell } from './shell/Shell'
 import { DEFAULT_SHELL } from './shell/shellTheme'
 
@@ -14,16 +14,18 @@ export function IconPreview() {
           <IconMoon size={26} />
           <IconMail size={15} />
           <IconGear size={15} />
-          <span style={{ color: '#e0453a' }}>
-            <IconAngry size={34} />
-          </span>
+          <img src="/icons/anger-noto.svg" width={34} height={34} alt="화남" />
         </div>
         <div style={{ position: 'relative', height: 140 }}>
           {/* 실제 화남 말풍선과 동일한 마크업 */}
           <SpeechBubble x={150} y={120} onClose={() => {}}>
-            <span style={{ color: '#e0453a' }}>
-              <IconAngry size={34} label="너무 많이 쓰다듬어서 화남" />
-            </span>
+            <img
+              src="/icons/anger-noto.svg"
+              width={34}
+              height={34}
+              alt="너무 많이 쓰다듬어서 화남"
+              style={{ display: 'block' }}
+            />
           </SpeechBubble>
         </div>
       </div>
