@@ -5,16 +5,17 @@ import { BLOB_MAP, drawPixelMap, PALETTE_GRIMY, PALETTE_NORMAL } from './sprite'
 
 export const STAGE_W = 320
 export const STAGE_H = 240
-const SCALE = 5
+const SCALE = 7
 export const SPRITE_W = BLOB_MAP[0].length * SCALE
 export const SPRITE_H = BLOB_MAP.length * SCALE
 const FLOOR_Y = 200
 /**
- * 생성 이미지는 16×16 도트를 정수 4배(64×64)로 확대해 정사각으로 그린다.
- * 스프라이트 박스(60×45)에 맞춰 늘리면 세로가 눌려 왜곡되므로, 가로는 박스 중앙에 맞추고
- * 세로는 박스 하단(= FLOOR_Y)에 맞춘다. 이미지가 박스보다 19px 위로 더 커지는 건 의도된 것.
+ * 생성 이미지는 16×16 도트를 정수 6배(96×96)로 확대해 정사각으로 그린다.
+ * 스프라이트 박스에 맞춰 늘리면 세로가 눌려 왜곡되므로, 가로는 박스 중앙에 맞추고
+ * 세로는 박스 하단(= FLOOR_Y)에 맞춘다. 이미지가 박스보다 위로 더 커지는 건 의도된 것.
+ * (셸 리디자인에서 "캐릭터 더 크게" 요청으로 SCALE 5→7, 이미지 4배→6배 확대)
  */
-export const SPRITE_IMAGE_SIZE = 64
+export const SPRITE_IMAGE_SIZE = 96
 
 export interface Scene {
   state: CharState
