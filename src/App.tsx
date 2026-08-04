@@ -10,11 +10,14 @@ import { Inbox } from './messages/Inbox'
 import { SendNote } from './messages/SendNote'
 import { useMessages } from './messages/useMessages'
 import { useCoupleChannel } from './realtime/useCoupleChannel'
+import { usePetChannel } from './realtime/usePetChannel'
 import { useGame } from './state/store'
+import { applyPetEvent, type PetToastState } from './traces/petToast'
 import { TraceToast } from './traces/TraceToast'
 import { AvatarGallery } from './ui/AvatarGallery'
 import { CareButtons } from './ui/CareButtons'
 import { Hud } from './ui/Hud'
+import { PetToast } from './ui/PetToast'
 import { SettingsCorner } from './ui/SettingsCorner'
 import { Stage } from './ui/Stage'
 
@@ -50,6 +53,14 @@ function MainApp() {
       if (mineId && userId) void loadCare(mineId, userId)
     },
     onProfile: refreshCouple,
+  })
+
+  // 쓰다듬 실시간 토스트 — 수신 상태는 여기서 들고, 표시 판정은 PetToast가 한다
+  const [petToast, setPetToast] = useState<PetToastState | null>(null)
+  const partnerNickname = couple?.partner?.nickname
+  // 전송 핸들(sendPet)은 쓰다듬 버튼이 붙는 다음 단계에서 꺼내 쓴다 — 지금은 수신만 연결한다
+  usePetChannel(couple?.coupleId, userId, () => {
+    setPetToast((s) => applyPetEvent(s, partnerNickname ?? '연인', Date.now()))
   })
 
   // 대기 화면은 Realtime에만 기대지 않는다: 구독이 실패하면 "연인이 들어오면 자동으로 넘어가요"
@@ -101,6 +112,7 @@ function MainApp() {
         partnerId={couple.partner.userId}
         partnerNickname={couple.partner.nickname}
       />
+      <PetToast state={petToast} />
       <Stage character={mine} unread={unread} markRead={markRead} />
       <Hud character={mine} />
       <CareButtons />
