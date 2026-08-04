@@ -9,7 +9,7 @@ import { goodnightDateKeys, isSleepScene } from '../game/night'
 import { startLoop } from '../game/loop'
 import { pickNextUnread, type Message } from '../messages/useMessages'
 import { ParticleSystem } from '../game/particles'
-import { characterPos, renderScene, SPRITE_H, SPRITE_W, STAGE_H, STAGE_W } from '../game/render'
+import { characterPos, renderScene, SPRITE_H, SPRITE_IMAGE_SIZE, SPRITE_W, STAGE_H, STAGE_W } from '../game/render'
 import { loadCharacterImage } from '../game/spriteImage'
 import { createWalker } from '../game/walker'
 import { useTick } from '../hooks/useTick'
@@ -198,8 +198,14 @@ export function Stage({ character, unread, markRead }: StageProps) {
   }
 
   const canvasEl = canvasRef.current
+  // 생성 이미지는 스프라이트 박스보다 위로 솟아 그려진다(render.ts의 바닥 정렬 참고).
+  // 박스 상단에 앵커하면 말풍선이 캐릭터 머리와 겹치므로, 이미지 캐릭터는 시각적 상단
+  // (박스 하단 - SPRITE_IMAGE_SIZE)에 앵커하고 살짝 띄운다.
+  const visualTopY = character.imageUrl
+    ? posRef.current.y + SPRITE_H - SPRITE_IMAGE_SIZE
+    : posRef.current.y
   const bubblePos = canvasEl
-    ? stageToCss({ x: posRef.current.x + SPRITE_W / 2, y: posRef.current.y }, canvasEl)
+    ? stageToCss({ x: posRef.current.x + SPRITE_W / 2, y: visualTopY - 4 }, canvasEl)
     : { x: 0, y: 0 }
 
   return (

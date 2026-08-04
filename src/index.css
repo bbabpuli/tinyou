@@ -63,10 +63,11 @@ input {
 
 /* ── 셸: 뷰포트 전체가 기기다 ── */
 .shell {
+  position: relative; /* 트레이(absolute 바텀시트)의 기준 */
   min-height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
-  padding: 14px 16px 0;
+  padding: 14px 16px 64px; /* 하단 여백 = 닫힌 트레이 손잡이 높이 */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -202,8 +203,12 @@ input {
 
 /* ── 트레이 (바텀시트) ── */
 .tray {
-  margin-top: auto;
-  width: calc(100% + 32px); /* 셸 좌우 패딩 상쇄 — 트레이는 가장자리까지 */
+  /* 인플로우가 아니라 셸 위에 겹치는 바텀시트 — 열려도 페이지 전체 스크롤이 생기지 않는다 */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
   background: var(--paper);
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -4px 0 rgba(0, 0, 0, 0.12);
@@ -240,8 +245,9 @@ input {
   display: grid;
   gap: 14px;
   padding: 4px 16px 20px;
-  max-height: 55vh;
+  max-height: 45dvh; /* 시트 안에서만 스크롤 — 뷰포트를 넘지 않는다 */
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .tray-section-label {
   font-size: 12px;
