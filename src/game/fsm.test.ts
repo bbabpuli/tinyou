@@ -169,3 +169,39 @@ test('진입 전 endDeliver는 pending을 취소', () => {
   fsm.update(16)
   expect(fsm.state).not.toBe('deliver')
 })
+
+const PET_CYCLE_MS = 1200 + 1500 // petted + happy
+
+test('대기 큐 상한을 넘는 연타 입력은 무시된다 (연출 적체 방지)', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  for (let i = 0; i < 20; i++) fsm.enqueue('pet') // 무한 쓰다듬 연타
+  fsm.update(16) // 1건 시작 → 대기 큐엔 상한(2건)만 남아야 한다
+  expect(fsm.state).toBe('petted')
+  // 진행 중 1건 + 대기 2건 = 총 3건이면 평상 복귀 (상한이 없으면 20건이 계속 재생됨)
+  fsm.update(3 * PET_CYCLE_MS - 16)
+  expect(['idle', 'walk']).toContain(fsm.state)
+})
+
+test('상한 이내(진행 1 + 대기 2)의 입력은 기존과 동일하게 모두 재생', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  fsm.enqueue('pet')
+  fsm.update(16) // 1건 시작
+  fsm.enqueue('pet')
+  fsm.enqueue('pet') // 대기 2건 — 상한 이내이므로 둘 다 유지
+  fsm.update(2 * PET_CYCLE_MS - 16) // 1·2건째 소진 → 3건째 시작
+  expect(fsm.state).toBe('petted')
+  fsm.update(1200)
+  expect(fsm.state).toBe('happy')
+  fsm.update(1500)
+  expect(['idle', 'walk']).toContain(fsm.state)
+})
+
+test('큐가 비워지면 새 입력을 다시 받는다 (상한은 대기 중일 때만 적용)', () => {
+  const fsm = createCharacterFsm(fixedRng)
+  for (let i = 0; i < 10; i++) fsm.enqueue('pet')
+  fsm.update(16)
+  fsm.update(3 * PET_CYCLE_MS - 16) // 상한만큼 소진 → 큐 비었고 평상 복귀
+  fsm.enqueue('feed')
+  fsm.update(16)
+  expect(fsm.state).toBe('eat')
+})

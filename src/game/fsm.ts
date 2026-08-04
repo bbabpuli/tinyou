@@ -8,6 +8,11 @@ const ACTION_FLOW: Record<CareInput, { state: CharState; ms: number }> = {
   pet: { state: 'petted', ms: 1200 },
 }
 const HAPPY_MS = 1500
+/**
+ * 대기 큐 상한(진행 중인 액션 제외). 쓰다듬 연타처럼 입력이 쏟아져도 연출이 무한정 적체되지 않도록,
+ * 이미 이만큼 밀려 있으면 새 입력의 '연출'만 버린다 — XP·토스트 등 도메인 처리는 호출부에서 이미 끝난 뒤다.
+ */
+const MAX_QUEUED_ACTIONS = 2
 // 'deliver'도 포함: 편지를 들고 있는 동안은 큐/앰비언트 자동 전이를 막아야 한다(원격 종료는 endDeliver로만).
 const ACTION_STATES: CharState[] = ['eat', 'petted', 'happy', 'deliver']
 
@@ -58,6 +63,7 @@ export function createCharacterFsm(rng: () => number = Math.random): CharacterFs
       return phaseMs
     },
     enqueue(input) {
+      if (queue.length >= MAX_QUEUED_ACTIONS) return // 연타 스팸 — 연출만 드롭
       queue.push(input)
     },
     setMood(m) {
