@@ -61,6 +61,17 @@ const GLYPHS = {
     '#..........#',
     '############',
   ],
+  /** 화남 마크(💢꼴 핀휠) — 쓰담 스팸 시 말풍선에 뜬다 */
+  angry: [
+    '##......##',
+    '###....###',
+    '.##....##.',
+    '..........',
+    '..........',
+    '.##....##.',
+    '###....###',
+    '##......##',
+  ],
   /** 슬라이더 — 설정 */
   gear: [
     '...##.......',
@@ -112,4 +123,5 @@ export const IconRice = (p: IconProps) => <PixelIcon glyph="rice" {...p} />
 export const IconHeart = (p: IconProps) => <PixelIcon glyph="heart" {...p} />
 export const IconMoon = (p: IconProps) => <PixelIcon glyph="moon" {...p} />
 export const IconMail = (p: IconProps) => <PixelIcon glyph="mail" {...p} />
+export const IconAngry = (p: IconProps) => <PixelIcon glyph="angry" {...p} />
 export const IconGear = (p: IconProps) => <PixelIcon glyph="gear" {...p} />

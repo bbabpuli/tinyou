@@ -17,7 +17,7 @@ export function LcdTicker() {
       out.push(`아직 배불러요 · 약 ${hoursUntilHungry(lastFedAt(careLog), now)}시간 후 배고파져요`)
     }
     if (!canPetStackToday(careLog, userId, now)) {
-      out.push('오늘 쓰담 XP 완료 · 그래도 계속 쓰다듬을 수 있어요 🫶')
+      out.push('오늘 쓰담 XP 완료 · 그래도 계속 쓰다듬을 수 있어요')
     }
     return out
   }, [careLog, userId, now])

@@ -14,6 +14,7 @@ import { loadCharacterImage } from '../game/spriteImage'
 import { createWalker } from '../game/walker'
 import { useTick } from '../hooks/useTick'
 import { selectLastCaredAt, useGame } from '../state/store'
+import { IconAngry } from './icons'
 import { SpeechBubble } from './SpeechBubble'
 
 const MOOD_REFRESH_MS = 1000
@@ -31,7 +32,12 @@ interface StageProps {
   /** 미읽음 쪽지(오래된 것부터) — 있으면 분신이 편지를 들고 배달 연출에 들어간다 */
   unread: Message[]
   markRead: (id: string) => Promise<void>
+  /** 캐릭터를 직접 탭했을 때 — 쓰담 버튼과 같은 효과 */
+  onPet?: () => void
 }
+
+/** 화남 말풍선 표시 시간 — 스팸 판정 순간의 리액션이라 짧게 보여주고 치운다 */
+const ANGRY_BUBBLE_MS = 2600
 
 /** 스테이지 좌표(캔버스 내부 픽셀 기준)를 canvas의 실제 표시 크기(CSS 픽셀) 기준 좌표로 변환한다. */
 export function stageToCss(
@@ -42,7 +48,7 @@ export function stageToCss(
   return { x: pos.x * scale, y: pos.y * scale }
 }
 
-export function Stage({ character, unread, markRead }: StageProps) {
+export function Stage({ character, unread, markRead, onPet }: StageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   // rAF 루프(effect 밖 클로저)가 최신 unread를 보게 하는 스테일 가드 — useCouple/useCharacters의 latestKeyRef와 동일 패턴
   const unreadRef = useRef<Message[]>(unread)
@@ -53,8 +59,16 @@ export function Stage({ character, unread, markRead }: StageProps) {
   // 이미 말풍선으로 보여주고 읽음 처리한 쪽지 id — markRead의 서버 refresh가 늦어도 같은 쪽지 재표시를 막는다
   const shownIdsRef = useRef<Set<string>>(new Set())
   useTick(60_000) // 배고픔 배지는 시간만으로 나타나고 사라진다
+  useTick(500) // 화남 말풍선은 초 단위로 나타나고 사라진다
   const careLog = useGame((s) => s.careLog)
   const hungry = hungerFrom(lastFedAt(careLog), new Date()) === 'hungry'
+  // 쓰담 스팸 화남 신호 — store가 거부한 순간의 타임스탬프
+  const petAngryAt = useGame((s) => s.petAngryAt)
+  const [angryDismissedAt, setAngryDismissedAt] = useState<number | null>(null)
+  const angryVisible =
+    petAngryAt !== null &&
+    Date.now() - petAngryAt < ANGRY_BUBBLE_MS &&
+    angryDismissedAt !== petAngryAt
 
   useEffect(() => {
     unreadRef.current = unread
@@ -157,7 +171,9 @@ export function Stage({ character, unread, markRead }: StageProps) {
       posRef.current = characterPos(scene)
       if (input) {
         const pos = posRef.current
-        particles.spawnHearts(pos.x + SPRITE_W / 2, pos.y, input === 'pet' ? 6 : 3)
+        // 생성 이미지는 박스보다 위로 솟아 있다 — 하트가 얼굴을 가리지 않게 시각적 머리 위에서 스폰
+        const topY = image ? pos.y + SPRITE_H - SPRITE_IMAGE_SIZE : pos.y
+        particles.spawnHearts(pos.x + SPRITE_W / 2, topY - 4, input === 'pet' ? 6 : 3)
       }
       particles.update(dt)
       renderScene(ctx, scene)
@@ -173,18 +189,29 @@ export function Stage({ character, unread, markRead }: StageProps) {
   const handleCanvasClick = (e: MouseEvent<HTMLCanvasElement>) => {
     const canvasEl = canvasRef.current
     const fsm = fsmRef.current
-    if (!canvasEl || !fsm || fsm.state !== 'deliver' || bubbleMsg) return
+    if (!canvasEl || !fsm) return
     const rect = canvasEl.getBoundingClientRect()
     const clickX = e.clientX - rect.left
     const clickY = e.clientY - rect.top
-    const topLeft = stageToCss(posRef.current, canvasEl)
-    const bottomRight = stageToCss(
-      { x: posRef.current.x + SPRITE_W, y: posRef.current.y + SPRITE_H },
-      canvasEl,
-    )
+    // 히트박스는 시각적 캐릭터 기준 — 생성 이미지(정사각)는 박스보다 크고 위로 솟아 있다
+    const hasImage = Boolean(character.imageUrl)
+    const box = {
+      x: posRef.current.x + (hasImage ? (SPRITE_W - SPRITE_IMAGE_SIZE) / 2 : 0),
+      y: posRef.current.y + (hasImage ? SPRITE_H - SPRITE_IMAGE_SIZE : 0),
+      w: hasImage ? SPRITE_IMAGE_SIZE : SPRITE_W,
+      h: hasImage ? SPRITE_IMAGE_SIZE : SPRITE_H,
+    }
+    const topLeft = stageToCss(box, canvasEl)
+    const bottomRight = stageToCss({ x: box.x + box.w, y: box.y + box.h }, canvasEl)
     const hit = clickX >= topLeft.x && clickX <= bottomRight.x
       && clickY >= topLeft.y && clickY <= bottomRight.y
-    if (hit) setBubbleMsg(pickNextUnread(unread, shownIdsRef.current))
+    if (!hit) return
+    // 배달 중이면 쪽지 열기(기존 동작), 아니면 쓰다듬기
+    if (fsm.state === 'deliver' && !bubbleMsg) {
+      setBubbleMsg(pickNextUnread(unread, shownIdsRef.current))
+      return
+    }
+    onPet?.()
   }
 
   const closeBubble = () => {
@@ -235,6 +262,15 @@ export function Stage({ character, unread, markRead }: StageProps) {
       {bubbleMsg && (
         <SpeechBubble x={bubblePos.x} y={bubblePos.y} onClose={closeBubble}>
           {bubbleMsg.body}
+        </SpeechBubble>
+      )}
+      {!bubbleMsg && angryVisible && (
+        <SpeechBubble
+          x={bubblePos.x}
+          y={bubblePos.y}
+          onClose={() => setAngryDismissedAt(petAngryAt)}
+        >
+          <IconAngry size={20} label="너무 많이 쓰다듬어서 화남" />
         </SpeechBubble>
       )}
     </div>

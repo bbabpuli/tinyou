@@ -65,6 +65,13 @@ function MainApp() {
   const { sendPet } = usePetChannel(couple?.coupleId, userId, () => {
     setPetToast((s) => applyPetEvent(s, partnerNickname ?? '연인', Date.now()))
   })
+  // 캐릭터를 직접 탭해도 쓰담 버튼과 동일한 흐름 (게이트·스팸 가드·브로드캐스트 공유)
+  const care = useGame((s) => s.care)
+  const petByTouch = () => {
+    void (async () => {
+      if (await care('pet')) sendPet()
+    })()
+  }
 
   // 대기 화면은 Realtime에만 기대지 않는다: 구독이 실패하면 "연인이 들어오면 자동으로 넘어가요"
   // 약속이 깨지므로, 파트너가 없는 동안만 5초 폴링으로 직접 확인한다. 파트너가 생기면 정리된다.
@@ -129,7 +136,7 @@ function MainApp() {
           <PetToast state={petToast} />
           <div className="lcd">
             <Hud character={mine} />
-            <Stage character={mine} unread={unread} markRead={markRead} />
+            <Stage character={mine} unread={unread} markRead={markRead} onPet={petByTouch} />
             <LcdTicker />
           </div>
           <CareButtons onPetSent={sendPet} />
