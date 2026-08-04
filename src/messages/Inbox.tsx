@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { IconMail } from '../ui/icons'
 import type { Message } from './useMessages'
 
 const PAGE_SIZE = 5
@@ -19,7 +20,7 @@ export function Inbox({ inbox }: InboxProps) {
   return (
     <div>
       <button onClick={() => setOpen((o) => !o)} style={{ width: '100%' }}>
-        💌 쪽지함 ({inbox.length}) {open ? '▲' : '▼'}
+        <IconMail size={14} /> 쪽지함 ({inbox.length}) {open ? '▲' : '▼'}
       </button>
       {open && (
         <>

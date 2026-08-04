@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { IconGear, IconMail } from '../icons'
 
 /**
  * 셸 하단 쪽지 트레이 (바텀시트). 손잡이를 탭하면 열리고 내용은 내부 스크롤.
@@ -14,10 +15,10 @@ export function Tray({ unreadCount, children }: { unreadCount: number; children:
         aria-expanded={open}
       >
         <span className="grip" aria-hidden />
-        ✉️ 쪽지{' '}
+        <IconMail size={15} /> 쪽지{' '}
         {unreadCount > 0 && <span className="tray-badge">{unreadCount}</span>}
-        {' · ⚙️ '}
-        {open ? '▼' : '▲'}
+        {' · '}
+        <IconGear size={15} label="설정" /> {open ? '▼' : '▲'}
       </button>
       {open && <div className="tray-body">{children}</div>}
     </div>

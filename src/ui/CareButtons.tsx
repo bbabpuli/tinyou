@@ -4,6 +4,7 @@ import { canFeedNow } from '../domain/hunger'
 import { isGoodnightWindow } from '../game/night'
 import { useTick } from '../hooks/useTick'
 import { useGame } from '../state/store'
+import { IconHeart, IconMoon, IconRice } from './icons'
 import { DeviceButton } from './shell/DeviceButton'
 
 /**
@@ -27,9 +28,9 @@ export function CareButtons({ onPetSent }: { onPetSent?: () => void }) {
   }
   return (
     <div className="device-buttons">
-      <DeviceButton icon="🍙" label="밥" disabled={!feedable} onClick={() => void care('feed')} />
-      <DeviceButton icon="🫳" label="쓰담" disabled={!userId} onClick={() => void handlePet()} />
-      <DeviceButton icon="🌙" label="굿나잇" disabled={!canGoodnight} onClick={() => void care('goodnight')} />
+      <DeviceButton icon={<IconRice size={26} />} label="밥" disabled={!feedable} onClick={() => void care('feed')} />
+      <DeviceButton icon={<IconHeart size={26} />} label="쓰담" disabled={!userId} onClick={() => void handlePet()} />
+      <DeviceButton icon={<IconMoon size={26} />} label="굿나잇" disabled={!canGoodnight} onClick={() => void care('goodnight')} />
     </div>
   )
 }
