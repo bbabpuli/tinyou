@@ -65,6 +65,12 @@ Claude Code 회사 구독과 별개로 console.anthropic.com 개인 계정 + $5 
 - 기념일 이벤트
 (굿나잇·흔적 요약은 Plan 3에서 구현 완료)
 
+## 추후 작업 — OS 푸시 알림 (Web Push)
+
+쓰다듬 알림(2026-08-04 스펙)은 앱 내 실시간 토스트로만 구현. 앱이 꺼진 상대에게도
+폰 알림을 보내려면 Web Push 필요: 서비스 워커 + 푸시 구독 테이블 + 발송 Edge Function
++ iOS PWA 제약(홈 화면 설치 필수) 대응. Plan 4 PWA 작업(manifest + SW)과 묶으면 효율적.
+
 ## 5순위 — 꾸미기 UI
 
 overlays 슬롯은 아바타 v2에 준비돼 있음(compose.ts). 레벨업 보상과 연결.
