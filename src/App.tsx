@@ -15,6 +15,7 @@ import { useGame } from './state/store'
 import { applyPetEvent, type PetToastState } from './traces/petToast'
 import { TraceToast } from './traces/TraceToast'
 import { AvatarGallery } from './ui/AvatarGallery'
+import { IconPreview } from './ui/IconPreview'
 import { CareButtons } from './ui/CareButtons'
 import { Hud } from './ui/Hud'
 import { PetToast } from './ui/PetToast'
@@ -26,7 +27,9 @@ import { Tray } from './ui/shell/Tray'
 import { Stage } from './ui/Stage'
 
 export function App() {
-  if (new URLSearchParams(window.location.search).has('gallery')) return <AvatarGallery />
+  const params = new URLSearchParams(window.location.search)
+  if (params.has('gallery')) return <AvatarGallery />
+  if (params.has('icons')) return <IconPreview />
   return <MainApp />
 }
 
