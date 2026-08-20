@@ -58,8 +58,7 @@ function MainApp() {
   // 쓰다듬 실시간 토스트 — 수신 상태는 여기서 들고, 표시 판정은 PetToast가 한다
   const [petToast, setPetToast] = useState<PetToastState | null>(null)
   const partnerNickname = couple?.partner?.nickname
-  // 반환되는 sendPet은 Task 7에서 <CareButtons onPetSent={sendPet} />로 연결한다
-  usePetChannel(couple?.coupleId, userId, () => {
+  const { sendPet } = usePetChannel(couple?.coupleId, userId, () => {
     setPetToast((s) => applyPetEvent(s, partnerNickname ?? '연인', Date.now()))
   })
 
@@ -115,7 +114,7 @@ function MainApp() {
       <PetToast state={petToast} />
       <Stage character={mine} unread={unread} markRead={markRead} />
       <Hud character={mine} />
-      <CareButtons />
+      <CareButtons onPetSent={sendPet} />
       <SendNote send={send} />
       <Inbox inbox={inbox} />
     </>

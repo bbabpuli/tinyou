@@ -3,3 +3,9 @@
   src: url('/fonts/DungGeunMo.woff2') format('woff2');
   font-display: swap;
 }
+
+/* 이따금 나타나는 연출 — 6초 주기 중 약 2초만 보인다 */
+@keyframes tinyou-growl {
+  0%, 55%, 100% { opacity: 0; }
+  65%, 90% { opacity: 1; }
+}
