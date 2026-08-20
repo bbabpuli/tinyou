@@ -28,17 +28,17 @@ export function CareButtons({ onPetSent }: { onPetSent?: () => void }) {
   return (
     <div style={{ display: 'grid', gap: 4, justifyItems: 'center' }}>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-        <button disabled={!feedable} onClick={() => care('feed')}>🍙 밥 주기</button>
-        <button disabled={!userId} onClick={handlePet}>🫳 쓰다듬기</button>
+        <button disabled={!feedable} onClick={() => care('feed')}>밥 주기</button>
+        <button disabled={!userId} onClick={handlePet}>쓰다듬기</button>
         {showGoodnight && (
-          <button disabled={!canGoodnight} onClick={() => care('goodnight')}>🌙 굿나잇 인사</button>
+          <button disabled={!canGoodnight} onClick={() => care('goodnight')}>굿나잇 인사</button>
         )}
       </div>
       {!feedable && userId && (
         <small style={{ color: '#888' }}>아직 배불러요 — 약 {untilHungry}시간 후에 배고파져요</small>
       )}
       {userId && !petStackLeft && (
-        <small style={{ color: '#888' }}>오늘 쓰다듬기 XP는 다 모았어요 — 그래도 계속 쓰다듬을 수 있어요 🫶</small>
+        <small style={{ color: '#888' }}>오늘 쓰다듬기 XP는 다 모았어요 — 그래도 계속 쓰다듬을 수 있어요</small>
       )}
     </div>
   )

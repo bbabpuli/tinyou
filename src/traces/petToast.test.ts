@@ -5,20 +5,20 @@ const T0 = 1_000_000
 
 test('첫 이벤트: 단건 문구', () => {
   const s = applyPetEvent(null, '동글', T0)
-  expect(s.text).toBe('동글님이 쓰다듬었어요 🥰')
+  expect(s.text).toBe('동글님이 쓰다듬었어요')
   expect(s.lastEventAt).toBe(T0)
 })
 
 test('30초 안에 또 오면 잔뜩 문구로 병합', () => {
   const s1 = applyPetEvent(null, '동글', T0)
   const s2 = applyPetEvent(s1, '동글', T0 + 5_000)
-  expect(s2.text).toBe('동글님이 잔뜩 쓰다듬고 있어요 🥰')
+  expect(s2.text).toBe('동글님이 잔뜩 쓰다듬고 있어요')
 })
 
 test('병합 윈도(30s)가 지나면 다시 단건 문구', () => {
   const s1 = applyPetEvent(null, '동글', T0)
   const s2 = applyPetEvent(s1, '동글', T0 + PET_MERGE_WINDOW_MS)
-  expect(s2.text).toBe('동글님이 쓰다듬었어요 🥰')
+  expect(s2.text).toBe('동글님이 쓰다듬었어요')
 })
 
 test('표시 시간: 마지막 이벤트 후 4초까지만 보인다', () => {

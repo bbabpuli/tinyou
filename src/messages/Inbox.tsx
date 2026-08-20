@@ -11,7 +11,7 @@ export function Inbox({ inbox }: InboxProps) {
   return (
     <div>
       <button onClick={() => setOpen((o) => !o)} style={{ width: '100%' }}>
-        💌 쪽지함 ({inbox.length}) {open ? '▲' : '▼'}
+        쪽지함 ({inbox.length}) {open ? '▲' : '▼'}
       </button>
       {open && (
         <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0', display: 'grid', gap: 6 }}>

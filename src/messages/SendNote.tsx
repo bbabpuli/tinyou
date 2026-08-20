@@ -44,7 +44,7 @@ export function SendNote({ send }: SendNoteProps) {
       </div>
       {showToast && (
         <p style={{ textAlign: 'center', fontSize: 13, color: '#4a3f35' }}>
-          분신이 배달하러 갔어요 💌
+          분신이 배달하러 갔어요
         </p>
       )}
     </div>

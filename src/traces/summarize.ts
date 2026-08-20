@@ -23,9 +23,9 @@ export function summarizeTraces(
 
   const hasGoodnight = traces.some((a) => a.type === 'goodnight')
   const text = hasGoodnight
-    ? '잘 자라고 인사하고 갔어 🌙'
+    ? '잘 자라고 인사하고 갔어'
     : traces.length === 1
-      ? '다녀갔어 🍙'
+      ? '다녀갔어'
       : `${traces.length}번 다녀갔어`
 
   return { count: traces.length, text }

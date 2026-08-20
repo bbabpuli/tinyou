@@ -144,7 +144,7 @@ function RedecorateBanner({ onClick }: { onClick: () => void }) {
         background: '#fff3cd',
       }}
     >
-      <span>분신이 새 모습으로 단장하고 싶어해요 ✨</span>
+      <span>분신이 새 모습으로 단장하고 싶어해요</span>
       <button onClick={onClick}>단장하러 가기</button>
     </div>
   )

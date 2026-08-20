@@ -17,8 +17,8 @@ export function applyPetEvent(
   const merged = state !== null && nowMs - state.lastEventAt < PET_MERGE_WINDOW_MS
   return {
     text: merged
-      ? `${nickname}님이 잔뜩 쓰다듬고 있어요 🥰`
-      : `${nickname}님이 쓰다듬었어요 🥰`,
+      ? `${nickname}님이 잔뜩 쓰다듬고 있어요`
+      : `${nickname}님이 쓰다듬었어요`,
     lastEventAt: nowMs,
   }
 }

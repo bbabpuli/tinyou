@@ -6,9 +6,9 @@ import { levelForXp, xpIntoLevel } from '../domain/level'
 import { useTick } from '../hooks/useTick'
 import { selectLastCaredAt, selectXp, useGame } from '../state/store'
 
-const MOOD_LABEL = { happy: '행복해요 🥰', ok: '무난해요 🙂', sad: '시무룩… 🥺', grimy: '꼬질꼬질… 🫠' }
+const MOOD_LABEL = { happy: '행복해요', ok: '무난해요', sad: '시무룩…', grimy: '꼬질꼬질…' }
 
-const HUNGER_LABEL = { full: '배불러요 🍚', ok: '출출해요 🍙', hungry: '배고파요 🥣' }
+const HUNGER_LABEL = { full: '배불러요', ok: '출출해요', hungry: '배고파요' }
 
 interface HudProps {
   character: CharacterRow

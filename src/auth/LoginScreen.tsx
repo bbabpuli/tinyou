@@ -18,7 +18,7 @@ export function LoginScreen() {
 
   return (
     <div style={{ display: 'grid', gap: 12, textAlign: 'center' }}>
-      <h2>티뉴에 어서오세요 🐣</h2>
+      <h2>티뉴에 어서오세요</h2>
       {sent ? (
         <p>메일함을 확인해주세요! 로그인 링크를 보냈어요.</p>
       ) : (
@@ -30,7 +30,7 @@ export function LoginScreen() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <button disabled={!email.includes('@')} onClick={send}>
-            로그인 링크 받기 ✉️
+            로그인 링크 받기
           </button>
           {error && <p style={{ color: 'crimson' }}>{error}</p>}
         </>

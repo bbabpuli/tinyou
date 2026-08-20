@@ -32,7 +32,7 @@ export function SettingsCorner() {
       }}
       title="설정"
     >
-      ⚙️
+      설정
     </button>
   )
 }
