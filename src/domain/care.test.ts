@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { canCareToday, lastCaredAt, xpFromActions, type CareAction } from './care'
+import { canCareToday, canPetStackToday, lastCaredAt, petStackToday, xpFromActions, type CareAction } from './care'
 
 const NOW = new Date('2026-07-30T03:00:00Z') // 서울 07-30 12:00
 
@@ -42,4 +42,33 @@ test('lastCaredAt은 가장 최근 액션 시각, 없으면 null', () => {
   const recent = action({ createdAt: new Date('2026-07-30T00:00:00Z') })
   expect(lastCaredAt([old, recent])).toEqual(new Date('2026-07-30T00:00:00Z'))
   expect(lastCaredAt([recent, old])).toEqual(new Date('2026-07-30T00:00:00Z'))
+})
+
+// 2026-08-04 12:00Z = 서울 21:00. 서울 자정 경계는 15:00Z.
+const PET_NOW = new Date('2026-08-04T12:00:00Z')
+const petAt = (iso: string, userId = 'me') =>
+  ({ userId, type: 'pet' as const, createdAt: new Date(iso) })
+
+test('petStackToday: 오늘(서울) 내 pet 기록만 센다', () => {
+  const log = [
+    petAt('2026-08-04T10:00:00Z'),            // 오늘(서울 19:00)
+    petAt('2026-08-03T14:00:00Z'),            // 어제(서울 23:00) — 제외
+    petAt('2026-08-04T11:00:00Z', 'partner'), // 남의 기록 — 제외
+    { userId: 'me', type: 'feed' as const, createdAt: new Date('2026-08-04T10:30:00Z') }, // 다른 타입 — 제외
+  ]
+  expect(petStackToday(log, 'me', PET_NOW)).toBe(1)
+})
+
+test('서울 자정 경계: 14:59Z는 같은 날, 15:00Z는 다음 날', () => {
+  const now = new Date('2026-08-04T16:00:00Z') // 서울 8/5 01:00
+  expect(petStackToday([petAt('2026-08-04T14:59:00Z')], 'me', now)).toBe(0) // 서울 8/4 23:59 — 어제
+  expect(petStackToday([petAt('2026-08-04T15:00:00Z')], 'me', now)).toBe(1) // 서울 8/5 00:00 — 오늘
+})
+
+test('canPetStackToday: 2회 미만이면 true, 2회부터 false', () => {
+  expect(canPetStackToday([], 'me', PET_NOW)).toBe(true)
+  expect(canPetStackToday([petAt('2026-08-04T09:00:00Z')], 'me', PET_NOW)).toBe(true)
+  expect(canPetStackToday(
+    [petAt('2026-08-04T09:00:00Z'), petAt('2026-08-04T10:00:00Z')], 'me', PET_NOW,
+  )).toBe(false)
 })
