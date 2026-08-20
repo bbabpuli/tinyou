@@ -155,9 +155,29 @@ input {
   box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.12);
   color: var(--lcd-ink);
   padding: 18px 16px;
-  margin-top: 8px;
+  /* 셸(flex column)의 남는 공간을 위아래로 나눠 카드를 세로 중앙에 세운다.
+     내용이 뷰포트보다 길면 auto 마진이 0이 되어 평소처럼 아래로 흐른다. */
+  margin: auto 0;
   display: grid;
   gap: 12px;
+  justify-items: center;
+}
+/* 카드 내부는 폰 폭 전체가 아니라 읽기 좋은 한 칼럼으로 — 입력·버튼이 가로로 늘어지지 않게 */
+.lcd-card > * {
+  width: 100%;
+  max-width: 300px;
+}
+.lcd-card input,
+.lcd-card textarea,
+.lcd-card button {
+  width: 100%;
+  max-width: 300px;
+  justify-self: center;
+}
+.lcd-card h2 {
+  font-size: 19px;
+  line-height: 1.4;
+  margin: 0;
 }
 
 /* ── 물리 버튼 ── */

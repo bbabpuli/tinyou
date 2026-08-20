@@ -7,7 +7,7 @@ interface WaitingPartnerProps {
 export function WaitingPartner({ inviteCode, onRefresh }: WaitingPartnerProps) {
   return (
     <div style={{ display: 'grid', gap: 12, textAlign: 'center' }}>
-      <h2>연인을 기다리는 중이에요 💌</h2>
+      <h2>연인을 기다리는 중이에요</h2>
       <p>연인에게 이 코드를 보내주세요</p>
       {inviteCode ? (
         <strong style={{ fontSize: 40, letterSpacing: 6, fontFamily: 'monospace' }}>
@@ -17,7 +17,7 @@ export function WaitingPartner({ inviteCode, onRefresh }: WaitingPartnerProps) {
         <p style={{ color: 'crimson' }}>초대 코드를 불러오지 못했어요</p>
       )}
       <p style={{ fontSize: 13, opacity: 0.7 }}>코드는 24시간 유효해요</p>
-      <button onClick={onRefresh}>들어왔는지 확인 🔄 (자동으로도 넘어가요)</button>
+      <button onClick={onRefresh}>들어왔는지 확인 (자동으로도 넘어가요)</button>
     </div>
   )
 }

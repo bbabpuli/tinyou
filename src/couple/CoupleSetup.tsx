@@ -33,7 +33,7 @@ export function CoupleSetup({ onDone }: { onDone: () => void }) {
 
   return (
     <div style={{ display: 'grid', gap: 12, textAlign: 'center' }}>
-      <h2>둥지 만들기 🪺</h2>
+      <h2>둥지 만들기</h2>
       <input placeholder="내 닉네임" value={nickname} onChange={(e) => setNickname(e.target.value)} />
       {mode === 'menu' && (
         <>

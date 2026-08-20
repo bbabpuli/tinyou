@@ -70,7 +70,7 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
     }
     if (error || code) {
       setError(
-        code === 'GENERATION_LIMIT' ? '확정 가능 횟수를 모두 썼어요 🥲'
+        code === 'GENERATION_LIMIT' ? '확정 가능 횟수를 모두 썼어요'
         : code === 'PARTNER_NOT_JOINED' ? '연인이 아직 방에 들어오지 않았어요'
         : '저장에 실패했어요. 잠시 후 다시 시도해주세요',
       )
@@ -82,7 +82,7 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
   if (step === 'cards') {
     return (
       <div style={{ display: 'grid', gap: 12 }}>
-        <h2>연인을 들려주세요 💌</h2>
+        <h2>연인을 들려주세요</h2>
         {QUESTIONS.map((q, i) => (
           <label key={q.id} style={{ display: 'grid', gap: 4, textAlign: 'left' }}>
             {q.title}
@@ -96,7 +96,7 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
           </label>
         ))}
         <button disabled={busy || answers.every((a) => !a.trim())} onClick={generate}>
-          {busy ? '분신을 상상하는 중… ✨' : '분신 만나러 가기'}
+          {busy ? '분신을 상상하는 중…' : '분신 만나러 가기'}
         </button>
         {error && <p style={{ color: 'crimson' }}>{error}</p>}
       </div>
@@ -122,7 +122,7 @@ export function CharacterCreate({ onDone }: { onDone: () => void }): JSX.Element
         onChange={(e) => setName(e.target.value)}
       />
       <button disabled={busy || !name.trim()} onClick={confirmName}>
-        이 아이로 할래요 💕
+        이 아이로 할래요
       </button>
       {error && <p style={{ color: 'crimson' }}>{error}</p>}
     </div>
