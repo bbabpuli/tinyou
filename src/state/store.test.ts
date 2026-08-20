@@ -53,3 +53,39 @@ test('reset은 모든 필드를 초기값으로 되돌린다', async () => {
   expect(useGame.getState().careLog).toEqual([])
   expect(useGame.getState().pending).toEqual([])
 })
+
+const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3600_000)
+
+test('feed: 배부르면(마지막 밥 4h 미만) insert 없이 거부', async () => {
+  const insert = vi.fn().mockResolvedValue({ ok: true })
+  useGame.setState({
+    insertCare: insert,
+    careLog: [{ userId: 'me', type: 'feed', createdAt: hoursAgo(2) }],
+  })
+  expect(await useGame.getState().care('feed', NOW)).toBe(false)
+  expect(insert).not.toHaveBeenCalled()
+})
+
+test('feed: 8시간 지나 배고프면 같은 날에도 다시 가능', async () => {
+  const insert = vi.fn().mockResolvedValue({ ok: true })
+  useGame.setState({
+    insertCare: insert,
+    careLog: [{ userId: 'me', type: 'feed', createdAt: hoursAgo(9) }],
+  })
+  expect(await useGame.getState().care('feed', NOW)).toBe(true)
+  expect(insert).toHaveBeenCalledTimes(1)
+})
+
+test('pet: 하루 2회까지 기록, 3회째는 insert 없이 애니메이션(pending)만', async () => {
+  const insert = vi.fn().mockResolvedValue({ ok: true })
+  useGame.setState({ insertCare: insert })
+  expect(await useGame.getState().care('pet', NOW)).toBe(true)
+  expect(await useGame.getState().care('pet', NOW)).toBe(true)
+  expect(insert).toHaveBeenCalledTimes(2)
+  expect(useGame.getState().careLog).toHaveLength(2)
+
+  expect(await useGame.getState().care('pet', NOW)).toBe(true) // 3회째도 성공으로 응답
+  expect(insert).toHaveBeenCalledTimes(2)                      // 하지만 insert 없음
+  expect(useGame.getState().careLog).toHaveLength(2)           // 기록도 없음 (XP 안 오름)
+  expect(useGame.getState().pending).toEqual(['pet', 'pet', 'pet']) // 애니메이션은 3번 다
+})
