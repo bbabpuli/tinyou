@@ -37,7 +37,7 @@ export function CareButtons({ onPetSent }: { onPetSent?: () => void }) {
       {!feedable && userId && (
         <small style={{ color: '#888' }}>아직 배불러요 — 약 {untilHungry}시간 후에 배고파져요</small>
       )}
-      {!petStackLeft && (
+      {userId && !petStackLeft && (
         <small style={{ color: '#888' }}>오늘 쓰다듬기 XP는 다 모았어요 — 그래도 계속 쓰다듬을 수 있어요 🫶</small>
       )}
     </div>
